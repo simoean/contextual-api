@@ -1,0 +1,140 @@
+[
+  {
+    "id": "user123",
+    "username": "john.doe",
+    "password": "{bcrypt}$2a$10$w82tG9s9C1Xk/7ZzY.q.eu9.g.u.n.m.x.y.z.1.2.3.4.5.6.7.8.9.0.a.b.c.d.e.f",
+    "email": "john.doe@example.com",
+    "roles": ["ROLE_USER"],
+    "contexts": [
+      {
+        "id": "ctx-prof",
+        "name": "Professional",
+        "description": "Information for professional networking and work-related interactions."
+      },
+      {
+        "id": "ctx-pers",
+        "name": "Personal",
+        "description": "Information for friends and family."
+      },
+      {
+        "id": "ctx-acad",
+        "name": "Academic",
+        "description": "Information for university and academic collaborations."
+      }
+    ],
+    "attributes": [
+      {
+        "id": "attr-fn",
+        "userId": "user123",
+        "name": "firstName",
+        "value": "John",
+        "contextIds": ["ctx-prof", "ctx-pers", "ctx-acad"],
+        "isPublic": true
+      },
+      {
+        "id": "attr-ln",
+        "userId": "user123",
+        "name": "lastName",
+        "value": "Doe",
+        "contextIds": ["ctx-prof", "ctx-pers", "ctx-acad"],
+        "isPublic": true
+      },
+      {
+        "id": "attr-email-prof",
+        "userId": "user123",
+        "name": "professionalEmail",
+        "value": "john.doe@work.com",
+        "contextIds": ["ctx-prof"],
+        "isPublic": false
+      },
+      {
+        "id": "attr-email-pers",
+        "userId": "user123",
+        "name": "personalEmail",
+        "value": "john.personal@gmail.com",
+        "contextIds": ["ctx-pers"],
+        "isPublic": true
+      },
+      {
+        "id": "attr-title",
+        "userId": "user123",
+        "name": "jobTitle",
+        "value": "Software Engineer",
+        "contextIds": ["ctx-prof"],
+        "isPublic": false
+      },
+      {
+        "id": "attr-company",
+        "userId": "user123",
+        "name": "company",
+        "value": "Tech Solutions Inc.",
+        "contextIds": ["ctx-prof"],
+        "isPublic": false
+      },
+      {
+        "id": "attr-hobby",
+        "userId": "user123",
+        "name": "favoriteHobby",
+        "value": "Hiking",
+        "contextIds": ["ctx-pers"],
+        "isPublic": true
+      },
+      {
+        "id": "attr-univ",
+        "userId": "user123",
+        "name": "university",
+        "value": "Metropolitan University",
+        "contextIds": ["ctx-prof", "ctx-acad"],
+        "isPublic": false
+      },
+      {
+        "id": "attr-degree",
+        "userId": "user123",
+        "name": "degree",
+        "value": "M.Sc. Computer Science",
+        "contextIds": ["ctx-prof", "ctx-acad"],
+        "isPublic": false
+      }
+    ]
+  },
+  {
+    "id": "user456",
+    "username": "jane.smith",
+    "password": "{bcrypt}$2a$10$w82tG9s9C1Xk/7ZzY.q.eu9.g.u.n.m.x.y.z.1.2.3.4.5.6.7.8.9.0.a.b.c.d.e.f",
+    "email": "jane.smith@example.com",
+    "roles": ["ROLE_USER"],
+    "contexts": [
+      {
+        "id": "ctx-pers-jane",
+        "name": "Personal",
+        "description": "Jane's personal context."
+      }
+    ],
+    "attributes": [
+      {
+        "id": "attr-fn-jane",
+        "userId": "user456",
+        "name": "firstName",
+        "value": "Jane",
+        "contextIds": ["ctx-pers-jane"],
+        "isPublic": true
+      },
+      {
+        "id": "attr-ln-jane",
+        "userId": "user456",
+        "name": "lastName",
+        "value": "Smith",
+        "contextIds": ["ctx-pers-jane"],
+        "isPublic": true
+      },
+      {
+        "id": "attr-email-jane",
+        "userId": "user456",
+        "name": "email",
+        "value": "jane.smith@email.com",
+        "contextIds": ["ctx-pers-jane"],
+        "isPublic": true
+      }
+    ]
+  }
+]
