@@ -1,2 +1,13 @@
-package com.simoes.contextual.model;public class LoginRequest {
+package com.simoes.contextual.model;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginRequest {
+  private String username;
+  private String password;
 }

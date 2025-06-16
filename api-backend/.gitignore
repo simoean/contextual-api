@@ -1,0 +1,86 @@
+# Compiled class files
+target/
+!/src/main/**/target/
+!/src/test/**/target/
+
+# Package Files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Log files
+*.log
+logs/
+*.json.log # If using JSON logging
+
+# IDE specific files
+.idea/                     # IntelliJ IDEA project files
+*.iml                      # IntelliJ IDEA module files
+*.ipr                      # IntelliJ IDEA project files (older format)
+*.iws                      # IntelliJ IDEA workspace files (older format)
+.project                   # Eclipse project files
+.classpath                 # Eclipse classpath files
+.settings/                 # Eclipse settings directory
+
+# Maven specific files
+pom.xml.tag
+pom.xml.bak
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/wrapper/maven-wrapper.jar # Maven wrapper jar (often committed, but ignore if you prefer to generate)
+
+# JVM specific files
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid* # HotSpot crash logs
+*.vmoptions                # JVM options file (e.g., in IntelliJ run configs)
+.classpath
+.project
+
+# Generated files
+/bin/
+/out/
+/lib/
+
+# Local configuration files
+*.properties.local
+*.yml.local
+*.yaml.local
+
+# Operating System Files
+.DS_Store                  # macOS
+Thumbs.db                  # Windows
+Desktop.ini                # Windows
+.localized                 # macOS
+.idea_modules/
+
+# Temporary files
+*~
+*.bak
+*.swp
+*.swo
+
+# Docker
+Dockerfile.bak
+
+# Any editor temporary files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+
+# Other misc
+.DS_Store
+.gradle/
+build/
+.factorypath
