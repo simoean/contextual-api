@@ -3,6 +3,7 @@ package com.simoes.contextual.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.With;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
@@ -10,6 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
  * When embedded in a User document, its ID is just a regular field.
  */
 @Data
+@With
 @NoArgsConstructor
 @AllArgsConstructor
 public class Context {

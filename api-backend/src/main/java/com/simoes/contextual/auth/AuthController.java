@@ -1,11 +1,12 @@
 package com.simoes.contextual.auth;
 
 import com.simoes.contextual.model.User;
-import com.simoes.contextual.user.UserService; // Changed from MockDataService
+import com.simoes.contextual.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthenticationManager authenticationManager;
-  private final UserService userService; // Changed from MockDataService
+  private final UserService userService;
 
   /**
    * Endpoint for user login.
@@ -49,8 +50,8 @@ public class AuthController {
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
       // Retrieve the full User object from user service
-      User authenticatedUser = userService.findUserByUsername(loginRequest.getUsername()) // Use userService
-              .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
+      User authenticatedUser = userService.findUserByUsername(loginRequest.getUsername())
+              .orElseThrow(() -> new RuntimeException("Authenticated user not found in service after authentication."));
 
       // For prototype, return basic user info
       AuthResponse authResponse = new AuthResponse(
@@ -60,10 +61,16 @@ public class AuthController {
       );
 
       return ResponseEntity.ok(authResponse);
-    } catch (Exception e) {
-      // Handle authentication failures (e.g., bad credentials)
+    } catch (BadCredentialsException e) {
+      // Wrong credentials provided
+      System.err.println("Authentication failed for user " + loginRequest.getUsername() + ": " + e.getMessage());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-              .body(new AuthResponse(null, null, "Invalid username or password"));
+              .body(new AuthResponse(null, null, "Authentication failed. Please check your username and password, or register if you don't have an account."));
+    } catch (RuntimeException e) {
+      // Edge case: if the user is authenticated but failed to retrieve its data
+      System.err.println("AuthController internal error: Authenticated user not found in service post-authentication: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body(new AuthResponse(null, null, "An internal server error occurred. Please try again later."));
     }
   }
 }

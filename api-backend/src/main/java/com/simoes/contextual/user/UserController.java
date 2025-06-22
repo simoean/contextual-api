@@ -51,11 +51,12 @@ public class UserController {
   }
 
   /**
-   * Endpoint to get a specific context by its ID for the authenticated user.
-   * This method retrieves the context from the user's contexts.
+   * Endpoint to update an existing context for the authenticated user.
+   * This method modifies an existing Context in the user's contexts.
    *
-   * @param contextId The ID of the context to retrieve.
-   * @return ResponseEntity containing the Context object if found, or NOT_FOUND status.
+   * @param contextId The ID of the context to update.
+   * @param updatedContext The updated Context object.
+   * @return ResponseEntity containing the updated Context object or NOT_FOUND status if not found.
    */
   @PutMapping("/me/contexts/{contextId}")
   public ResponseEntity<Context> updateContext(
