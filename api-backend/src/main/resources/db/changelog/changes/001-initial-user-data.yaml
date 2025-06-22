@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-initial-user-data
+      author: gemini
+      changes:
+        - insertOne:
+            collectionName: users
+            document: |
+              {
+                "_id": "user123",
+                "username": "john.doe",
+                "password": "password",
+                "email": "john.doe@example.com",
+                "roles": ["ROLE_USER"],
+                "contexts": [
+                  { "id": "ctx-prof", "name": "Professional", "description": "Information for professional networking and work-related interactions." },
+                  { "id": "ctx-pers", "name": "Personal", "description": "Information for friends and family." },
+                  { "id": "ctx-acad", "name": "Academic", "description": "Information for university and academic collaborations." }
+                ],
+                "attributes": [
+                  { "id": "attr-fn", "userId": "user123", "name": "firstName", "value": "John", "contextIds": ["ctx-prof", "ctx-pers", "ctx-acad"], "visible": true },
+                  { "id": "attr-ln", "userId": "user123", "name": "lastName", "value": "Doe", "contextIds": ["ctx-prof", "ctx-pers", "ctx-acad"], "visible": true },
+                  { "id": "attr-email-prof", "userId": "user123", "name": "professionalEmail", "value": "john.doe@work.com", "contextIds": ["ctx-prof"], "visible": false },
+                  { "id": "attr-email-pers", "userId": "user123", "name": "personalEmail", "value": "john.personal@gmail.com", "contextIds": ["ctx-pers"], "visible": true },
+                  { "id": "attr-title", "userId": "user123", "name": "jobTitle", "value": "Software Engineer", "contextIds": ["ctx-prof"], "visible": false },
+                  { "id": "attr-company", "userId": "user123", "name": "company", "value": "Tech Solutions Inc.", "contextIds": ["ctx-prof"], "visible": true },
+                  { "id": "attr-hobby", "userId": "user123", "name": "favoriteHobby", "value": "Hiking", "contextIds": ["ctx-pers"], "visible": true },
+                  { "id": "attr-univ", "userId": "user123", "name": "university", "value": "Metropolitan University", "contextIds": ["ctx-prof", "ctx-acad"], "visible": true },
+                  { "id": "attr-degree", "userId": "user123", "name": "degree", "value": "M.Sc. Computer Science", "contextIds": ["ctx-acad"], "visible": true }
+                ]
+              }
+        - insertOne:
+            collectionName: users
+            document: |
+              {
+                "_id": "user456",
+                "username": "jane.smith",
+                "password": "password",
+                "email": "jane.smith@example.com",
+                "roles": ["ROLE_USER"],
+                "contexts": [
+                  { "id": "ctx-pers-jane", "name": "Personal", "description": "Jane's personal context." }
+                ],
+                "attributes": [
+                  { "id": "attr-fn-jane", "userId": "user456", "name": "firstName", "value": "Jane", "contextIds": ["ctx-pers-jane"], "visible": true },
+                  { "id": "attr-ln-jane", "userId": "user456", "name": "lastName", "value": "Smith", "contextIds": ["ctx-pers-jane"], "visible": true },
+                  { "id": "attr-email-jane", "userId": "user456", "name": "email", "value": "jane.smith@email.com", "contextIds": ["ctx-pers-jane"], "visible": true }
+                ]
+              }

@@ -1,9 +1,7 @@
-package com.simoes.contextual.controller;
+package com.simoes.contextual.auth;
 
-import com.simoes.contextual.model.AuthResponse;
-import com.simoes.contextual.model.LoginRequest;
 import com.simoes.contextual.model.User;
-import com.simoes.contextual.service.MockDataService;
+import com.simoes.contextual.user.UserService; // Changed from MockDataService
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +14,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Controller for handling authentication requests.
+ * This controller provides an endpoint for user login, authenticating the user
+ * and another endpoint for user registration.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
   private final AuthenticationManager authenticationManager;
-  private final MockDataService mockDataService; 
+  private final UserService userService; // Changed from MockDataService
 
+  /**
+   * Endpoint for user login.
+   * This method authenticates the user based on the provided credentials.
+   *
+   * @param loginRequest The request containing username and password.
+   * @return ResponseEntity containing authentication result.
+   */
   @PostMapping("/login")
   public ResponseEntity<AuthResponse> authenticateUser(@RequestBody LoginRequest loginRequest) {
     try {
@@ -38,9 +48,9 @@ public class AuthController {
       // Set the authenticated user in the SecurityContext
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // Retrieve the full User object from mock data service
-      User authenticatedUser = mockDataService.findUserByUsername(loginRequest.getUsername())
-              .orElseThrow(() -> new RuntimeException("Authenticated user not found in mock data."));
+      // Retrieve the full User object from user service
+      User authenticatedUser = userService.findUserByUsername(loginRequest.getUsername()) // Use userService
+              .orElseThrow(() -> new RuntimeException("Authenticated user not found."));
 
       // For prototype, return basic user info
       AuthResponse authResponse = new AuthResponse(

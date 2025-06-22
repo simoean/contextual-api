@@ -1,0 +1,9 @@
+# MongoDB Configuration
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/contextual-db
+      auto-index-creation: true # Auto-create indexes (useful for development, disable in production)
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+    enabled: true
