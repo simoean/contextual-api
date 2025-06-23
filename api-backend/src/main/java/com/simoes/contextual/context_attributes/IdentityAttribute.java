@@ -1,15 +1,14 @@
-package com.simoes.contextual.model;
+package com.simoes.contextual.context_attributes;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.util.List;
-
 /**
- * Represents a single identity attribute (e.g., firstName, email).
- * When embedded in a User document, its ID is just a regular field.
+ * Represents a single identity attribute (e.g., firstName, email). When embedded in a User
+ * document, its ID is just a regular field.
  */
 @Data
 @NoArgsConstructor
@@ -17,7 +16,8 @@ import java.util.List;
 public class IdentityAttribute {
   @Field("id")
   private String id;
-  private String userId; // Redundant when embedded in User, but useful for consistency or if pulled out later
+
+  private String userId;
   private String name;
   private String value;
   private boolean visible;

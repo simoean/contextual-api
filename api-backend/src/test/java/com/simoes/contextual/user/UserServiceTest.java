@@ -3,9 +3,9 @@ package com.simoes.contextual.user;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.simoes.contextual.model.Context;
-import com.simoes.contextual.model.IdentityAttribute;
-import com.simoes.contextual.model.User;
+import com.simoes.contextual.context_attributes.Context;
+import com.simoes.contextual.context_attributes.IdentityAttribute;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,31 +45,31 @@ class UserServiceTest {
     testContextProfessional = new Context("ctx-2", "Professional", "Professional info");
 
     testAttributeFirstName =
-            new IdentityAttribute(
-                    "attr-1",
-                    "user123",
-                    "firstName",
-                    "John",
-                    true,
-                    Arrays.asList(testContextPersonal.getId(), testContextProfessional.getId()));
+        new IdentityAttribute(
+            "attr-1",
+            "user123",
+            "firstName",
+            "John",
+            true,
+            Arrays.asList(testContextPersonal.getId(), testContextProfessional.getId()));
     testAttributeLastName =
-            new IdentityAttribute(
-                    "attr-2",
-                    "user123",
-                    "lastName",
-                    "Doe",
-                    true,
-                    Collections.singletonList(testContextPersonal.getId()));
+        new IdentityAttribute(
+            "attr-2",
+            "user123",
+            "lastName",
+            "Doe",
+            true,
+            Collections.singletonList(testContextPersonal.getId()));
 
     testUser =
-            new User(
-                    "user123",
-                    "john.doe",
-                    "password",
-                    "john@example.com",
-                    Collections.singletonList("ROLE_USER"),
-                    new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
-                    new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)));
+        new User(
+            "user123",
+            "john.doe",
+            "password",
+            "john@example.com",
+            Collections.singletonList("ROLE_USER"),
+            new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
+            new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)));
   }
 
   @Test
@@ -155,6 +155,43 @@ class UserServiceTest {
     verify(userRepository, times(1)).save(testUser);
   }
 
+  @Test
+  @DisplayName("Should delete a user successfully when user exists")
+  void Given_UserExists_When_DeleteUser_Then_ReturnsTrueAndDeletesUser() {
+    // Given: UserRepository indicates the user exists
+    when(userRepository.existsById(testUser.getId())).thenReturn(true);
+    // When userRepository.deleteById is called, it returns void, so no specific mock needed beyond existsById
+
+    // When: UserService's deleteUser is called
+    boolean deleted = userService.deleteUser(testUser.getId());
+
+    // Then: Method should return true
+    assertTrue(deleted);
+
+    // Verify that existsById was called once
+    verify(userRepository, times(1)).existsById(testUser.getId());
+    // Verify that deleteById was called once
+    verify(userRepository, times(1)).deleteById(testUser.getId());
+  }
+
+  @Test
+  @DisplayName("Should return false when attempting to delete a non-existent user")
+  void Given_UserDoesNotExist_When_DeleteUser_Then_ReturnsFalseAndDoesNotDelete() {
+    // Given: UserRepository indicates the user does not exist
+    when(userRepository.existsById(anyString())).thenReturn(false);
+
+    // When: UserService's deleteUser is called
+    boolean deleted = userService.deleteUser("nonExistentId");
+
+    // Then: Method should return false
+    assertFalse(deleted);
+
+    // Verify that existsById was called once
+    verify(userRepository, times(1)).existsById(anyString());
+    // Verify that deleteById was NOT called
+    verify(userRepository, never()).deleteById(anyString());
+  }
+
   @Nested // NEW: Nested class for Context CRUD Operations
   @DisplayName("Context CRUD Operations")
   class ContextCrudOperations {
@@ -167,11 +204,11 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       Context updatedContext =
-              new Context(testContextPersonal.getId(), "Updated Personal", "New description");
+          new Context(testContextPersonal.getId(), "Updated Personal", "New description");
 
       // When: UserService's updateContext is called
       Optional<Context> result =
-              userService.updateContext(testUser.getId(), testContextPersonal.getId(), updatedContext);
+          userService.updateContext(testUser.getId(), testContextPersonal.getId(), updatedContext);
 
       // Then: Context should be updated and returned
       assertTrue(result.isPresent());
@@ -192,7 +229,8 @@ class UserServiceTest {
 
       // When: UserService's updateContext is called
       Optional<Context> result =
-              userService.updateContext(testUser.getId(), nonExistentContext.getId(), nonExistentContext);
+          userService.updateContext(
+              testUser.getId(), nonExistentContext.getId(), nonExistentContext);
 
       // Then: Optional should be empty
       assertFalse(result.isPresent());
@@ -227,18 +265,19 @@ class UserServiceTest {
 
     @Test
     @DisplayName("Should delete an existing context successfully and update attributes")
-    void Given_UserAndExistingContext_When_DeleteContext_Then_ContextIsDeletedAndAttributesUpdated() {
+    void
+        Given_UserAndExistingContext_When_DeleteContext_Then_ContextIsDeletedAndAttributesUpdated() {
       // Given: UserRepository finds the user and saves it
       when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       // Attribute 1 is linked to testContextPersonal
       assertTrue(
-              testUser.getAttributes().stream()
-                      .anyMatch(
-                              attr ->
-                                      attr.getId().equals(testAttributeFirstName.getId())
-                                              && attr.getContextIds().contains(testContextPersonal.getId())));
+          testUser.getAttributes().stream()
+              .anyMatch(
+                  attr ->
+                      attr.getId().equals(testAttributeFirstName.getId())
+                          && attr.getContextIds().contains(testContextPersonal.getId())));
 
       // When: UserService's deleteContext is called for testContextPersonal
       boolean deleted = userService.deleteContext(testUser.getId(), testContextPersonal.getId());
@@ -252,11 +291,11 @@ class UserServiceTest {
       assertFalse(testUser.getContexts().contains(testContextPersonal));
       // Verify attribute that was linked to the deleted context has its contextId removed
       assertFalse(
-              testUser.getAttributes().stream()
-                      .anyMatch(
-                              attr ->
-                                      attr.getId().equals(testAttributeFirstName.getId())
-                                              && attr.getContextIds().contains(testContextPersonal.getId())));
+          testUser.getAttributes().stream()
+              .anyMatch(
+                  attr ->
+                      attr.getId().equals(testAttributeFirstName.getId())
+                          && attr.getContextIds().contains(testContextPersonal.getId())));
     }
 
     @Test
@@ -288,11 +327,11 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       IdentityAttribute newAttribute =
-              new IdentityAttribute(null, null, "newAttr", "value", true, null);
+          new IdentityAttribute(null, null, "newAttr", "value", true, null);
 
       // When: UserService's createAttribute is called
       Optional<IdentityAttribute> result =
-              userService.createAttribute(testUser.getId(), newAttribute);
+          userService.createAttribute(testUser.getId(), newAttribute);
 
       // Then: New attribute should be returned with a generated ID
       assertTrue(result.isPresent());
@@ -316,18 +355,18 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       IdentityAttribute updatedAttribute =
-              new IdentityAttribute(
-                      testAttributeFirstName.getId(),
-                      testUser.getId(),
-                      "Updated Name",
-                      "Updated Value",
-                      false,
-                      Collections.emptyList());
+          new IdentityAttribute(
+              testAttributeFirstName.getId(),
+              testUser.getId(),
+              "Updated Name",
+              "Updated Value",
+              false,
+              Collections.emptyList());
 
       // When: UserService's updateAttribute is called
       Optional<IdentityAttribute> result =
-              userService.updateAttribute(
-                      testUser.getId(), testAttributeFirstName.getId(), updatedAttribute);
+          userService.updateAttribute(
+              testUser.getId(), testAttributeFirstName.getId(), updatedAttribute);
 
       // Then: Attribute should be updated and returned
       assertTrue(result.isPresent());
@@ -346,13 +385,13 @@ class UserServiceTest {
       when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
 
       IdentityAttribute nonExistentAttribute =
-              new IdentityAttribute(
-                      "attr-nonexistent", testUser.getId(), "nonexistent", "value", true, null);
+          new IdentityAttribute(
+              "attr-nonexistent", testUser.getId(), "nonexistent", "value", true, null);
 
       // When: UserService's updateAttribute is called
       Optional<IdentityAttribute> result =
-              userService.updateAttribute(
-                      testUser.getId(), nonExistentAttribute.getId(), nonExistentAttribute);
+          userService.updateAttribute(
+              testUser.getId(), nonExistentAttribute.getId(), nonExistentAttribute);
 
       // Then: Optional should be empty
       assertFalse(result.isPresent());
@@ -369,7 +408,8 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       // When: UserService's deleteAttribute is called for testAttributeFirstName
-      boolean deleted = userService.deleteAttribute(testUser.getId(), testAttributeFirstName.getId());
+      boolean deleted =
+          userService.deleteAttribute(testUser.getId(), testAttributeFirstName.getId());
 
       // Then: Attribute should be deleted
       assertTrue(deleted);

@@ -1,7 +1,14 @@
 package com.simoes.contextual.auth;
 
-import com.simoes.contextual.model.User;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
+import java.util.Collections;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,14 +25,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for the AuthController. These tests focus on the business logic within the controller,
  * mocking its external dependencies like AuthenticationManager and UserService.
@@ -34,20 +33,16 @@ import static org.mockito.Mockito.*;
 class AuthControllerTest {
 
   // Creates a mock instance of AuthenticationManager
-  @Mock
-  private AuthenticationManager authenticationManager;
+  @Mock private AuthenticationManager authenticationManager;
 
   // Creates a mock instance of UserService
-  @Mock
-  private UserService userService;
+  @Mock private UserService userService;
 
   // Injects the mocks into AuthController
-  @InjectMocks
-  private AuthController authController;
+  @InjectMocks private AuthController authController;
 
   // Mock for SecurityContextHolder
-  @Mock
-  private SecurityContext securityContext;
+  @Mock private SecurityContext securityContext;
 
   private LoginRequest testLoginRequest;
   private User testUser;
@@ -61,19 +56,19 @@ class AuthControllerTest {
     // Common setup for test data
     testLoginRequest = new LoginRequest("testuser", "testpassword");
     testUser =
-            new User(
-                    "user123",
-                    "testuser",
-                    "testpassword",
-                    "test@example.com",
-                    Collections.singletonList("ROLE_USER"),
-                    Collections.emptyList(),
-                    Collections.emptyList());
+        new User(
+            "user123",
+            "testuser",
+            "testpassword",
+            "test@example.com",
+            Collections.singletonList("ROLE_USER"),
+            Collections.emptyList(),
+            Collections.emptyList());
 
     // Mock a successful authentication object
     authenticatedAuth =
-            new UsernamePasswordAuthenticationToken(
-                    testLoginRequest.getUsername(), null, Collections.emptyList());
+        new UsernamePasswordAuthenticationToken(
+            testLoginRequest.getUsername(), null, Collections.emptyList());
 
     // Set up SecurityContextHolder mock
     SecurityContextHolder.setContext(securityContext);
@@ -84,11 +79,11 @@ class AuthControllerTest {
   void Given_UserExistsPasswordCorrect_When_AuthRequest_Then_ReturnsLoginSuccessful() {
     // Given: AuthenticationManager successfully authenticates
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-            .thenReturn(authenticatedAuth);
+        .thenReturn(authenticatedAuth);
 
     // Given: UserService successfully finds the user after authentication
     when(userService.findUserByUsername(testLoginRequest.getUsername()))
-            .thenReturn(Optional.of(testUser));
+        .thenReturn(Optional.of(testUser));
 
     // When: The login endpoint is called
     ResponseEntity<AuthResponse> response = authController.authenticateUser(testLoginRequest);
@@ -103,11 +98,11 @@ class AuthControllerTest {
 
     // Verify that authenticationManager.authenticate was called once with the correct token
     verify(authenticationManager, times(1))
-            .authenticate(
-                    argThat(
-                            token ->
-                                    token.getPrincipal().equals(testLoginRequest.getUsername())
-                                            && token.getCredentials().equals(testLoginRequest.getPassword())));
+        .authenticate(
+            argThat(
+                token ->
+                    token.getPrincipal().equals(testLoginRequest.getUsername())
+                        && token.getCredentials().equals(testLoginRequest.getPassword())));
     // Verify that SecurityContextHolder's context was set
     verify(securityContext, times(1)).setAuthentication(authenticatedAuth);
     // Verify that userService.findUserByUsername was called once
@@ -119,7 +114,7 @@ class AuthControllerTest {
   void Given_BadCredentials_When_AuthRequest_Then_ReturnsUnauthorized() { // Renamed
     // Given: AuthenticationManager throws BadCredentialsException
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-            .thenThrow(new BadCredentialsException("Invalid credentials"));
+        .thenThrow(new BadCredentialsException("Invalid credentials"));
 
     // When: The login endpoint is called
     ResponseEntity<AuthResponse> response = authController.authenticateUser(testLoginRequest);
@@ -128,7 +123,9 @@ class AuthControllerTest {
     assertNotNull(response);
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals("Authentication failed. Please check your username and password, or register if you don't have an account.", response.getBody().getMessage());
+    assertEquals(
+        "Authentication failed. Please check your username and password, or register if you don't have an account.",
+        response.getBody().getMessage());
     assertEquals(null, response.getBody().getUserId()); // Ensure user ID is null on failure
 
     // Verify that userService was NOT called
@@ -139,15 +136,16 @@ class AuthControllerTest {
 
   @Test
   @DisplayName(
-          "Should return 500 INTERNAL_SERVER_ERROR if authenticated user not found in service (edge case)")
-  void Given_UserAuthenticatedButNotFoundInService_When_AuthRequest_Then_ReturnsInternalServerError() { // Renamed
+      "Should return 500 INTERNAL_SERVER_ERROR if authenticated user not found in service (edge case)")
+  void
+      Given_UserAuthenticatedButNotFoundInService_When_AuthRequest_Then_ReturnsInternalServerError() { // Renamed
     // Given: AuthenticationManager successfully authenticates
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-            .thenReturn(authenticatedAuth);
+        .thenReturn(authenticatedAuth);
 
     // Given: UserService returns empty Optional, meaning user not found
     when(userService.findUserByUsername(testLoginRequest.getUsername()))
-            .thenReturn(Optional.empty());
+        .thenReturn(Optional.empty());
 
     // When: The login endpoint is called
     ResponseEntity<AuthResponse> response = authController.authenticateUser(testLoginRequest);
@@ -157,12 +155,12 @@ class AuthControllerTest {
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     assertNotNull(response.getBody());
     assertEquals(
-            "An internal server error occurred. Please try again later.",
-            response.getBody().getMessage());
+        "An internal server error occurred. Please try again later.",
+        response.getBody().getMessage());
 
     // Verify calls
     verify(authenticationManager, times(1))
-            .authenticate(any(UsernamePasswordAuthenticationToken.class));
+        .authenticate(any(UsernamePasswordAuthenticationToken.class));
     verify(userService, times(1)).findUserByUsername(testLoginRequest.getUsername());
     verify(securityContext, times(1)).setAuthentication(authenticatedAuth);
   }

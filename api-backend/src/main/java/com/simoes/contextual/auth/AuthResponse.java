@@ -1,12 +1,12 @@
 package com.simoes.contextual.auth;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 /**
- * Represents the response returned after a successful authentication.
- * This class encapsulates user information and a message indicating the result of the authentication process.
+ * Represents the response returned after a successful authentication. This class encapsulates user
+ * information and a message indicating the result of the authentication process.
  */
 @Data
 @NoArgsConstructor

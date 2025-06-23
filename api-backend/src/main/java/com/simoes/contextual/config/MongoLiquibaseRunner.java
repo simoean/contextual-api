@@ -1,4 +1,4 @@
-package com.simoes.contextual;
+package com.simoes.contextual.config;
 
 import liquibase.Liquibase;
 import liquibase.database.DatabaseFactory;
@@ -25,6 +25,13 @@ public class MongoLiquibaseRunner implements CommandLineRunner {
   private final LiquibaseProperties liquibaseProperties;
   private final ResourceLoader resourceLoader;
 
+  /**
+   * This method is called when the application starts. It initializes the MongoDB database and runs
+   * the Liquibase migrations.
+   *
+   * @param args command line arguments (not used)
+   * @throws Exception if there is an error during migration
+   */
   public void run(final String... args) throws Exception {
     MongoLiquibaseDatabase database =
         (MongoLiquibaseDatabase)

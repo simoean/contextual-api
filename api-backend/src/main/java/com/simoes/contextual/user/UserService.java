@@ -1,20 +1,21 @@
 package com.simoes.contextual.user;
 
-import com.simoes.contextual.model.Context;
-import com.simoes.contextual.model.IdentityAttribute;
-import com.simoes.contextual.model.User;
+import com.simoes.contextual.context_attributes.Context;
+import com.simoes.contextual.context_attributes.IdentityAttribute;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for managing user-related operations.
- * This service provides methods to find, save, update, and delete users, contexts, and identity attributes.
+ * Service for managing core user operations. This service provides methods to find and save User
+ * entities, and acts as the gatekeeper for modifications to embedded user data like contexts and
+ * attributes.
  */
 @Service
 @RequiredArgsConstructor
@@ -53,6 +54,20 @@ public class UserService {
   }
 
   /**
+   * Deletes a user by their ID. This method is primarily for administrative or cleanup purposes.
+   *
+   * @param userId The ID of the user to delete.
+   * @return true if the user was found and deleted, false otherwise.
+   */
+  public boolean deleteUser(String userId) {
+    if (userRepository.existsById(userId)) {
+      userRepository.deleteById(userId);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Creates a new context for a user.
    *
    * @param userId The ID of the user for whom the context is to be created.
@@ -62,15 +77,15 @@ public class UserService {
    */
   public Optional<Context> createContext(String userId, Context newContext) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      String newContextId = "ctx-" + UUID.randomUUID().toString().substring(0, 8);
-                      newContext.setId(newContextId);
-                      user.getContexts().add(newContext);
-                      userRepository.save(user);
-                      return newContext;
-                    });
+        .findById(userId)
+        .map(
+            user -> {
+              String newContextId = "ctx-" + UUID.randomUUID().toString().substring(0, 8);
+              newContext.setId(newContextId);
+              user.getContexts().add(newContext);
+              userRepository.save(user);
+              return newContext;
+            });
   }
 
   /**
