@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Unit tests for the UserService. These tests focus on the business logic within the service,
  * mocking its external dependency, UserRepository.
  */
-@ExtendWith(MockitoExtension.class) // Enables Mockito annotations for JUnit 5
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
   // Creates a mock instance of UserRepository

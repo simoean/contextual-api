@@ -3,7 +3,12 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/contextual-db
-      auto-index-creation: true # Auto-create indexes (useful for development, disable in production)
+      auto-index-creation: true
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.yaml
     enabled: true
+
+# JWT Configuration
+jwt:
+  secret: movPHMSG8X8r9vu0dvItrJrco23jO6v09rjEdubpkz8ewm9UsHO7DDDYEQM+RHAOKihGT1tIJaRaTsDrY1+ivw==
+  expirationMs: 86400000 # 24 hours

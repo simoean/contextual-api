@@ -9,7 +9,7 @@ databaseChangeLog:
               {
                 "_id": "user123",
                 "username": "john.doe",
-                "password": "password",
+                "password": "$2a$10$hif81LnTErGnkgIRACHP2eXzk0P2RYJDRjN/mZCOAc7PrEhEeC8wW",
                 "email": "john.doe@example.com",
                 "roles": ["ROLE_USER"],
                 "contexts": [
@@ -35,7 +35,7 @@ databaseChangeLog:
               {
                 "_id": "user456",
                 "username": "jane.smith",
-                "password": "password",
+                "password": "$2a$10$hif81LnTErGnkgIRACHP2eXzk0P2RYJDRjN/mZCOAc7PrEhEeC8wW",
                 "email": "jane.smith@example.com",
                 "roles": ["ROLE_USER"],
                 "contexts": [

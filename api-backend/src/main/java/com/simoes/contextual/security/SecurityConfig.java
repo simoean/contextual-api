@@ -1,62 +1,60 @@
 package com.simoes.contextual.security;
 
-import java.util.List;
+import com.simoes.contextual.security.jwt.JwtAuthenticationEntryPoint;
+import com.simoes.contextual.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 /**
- * Security configuration for the application. This class configures Spring Security to handle
- * authentication and authorization. It sets up CORS, disables CSRF protection, and defines security
- * rules for API endpoints.
+ * SecurityConfig configures Spring Security for JWT-based authentication. It sets up stateless
+ * sessions, defines access rules, and integrates JWT filters.
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final CustomUserDetailsService customUserDetailsService;
+  private final UserDetailsService userDetailsService;
+  private final JwtAuthenticationEntryPoint unauthorizedHandler;
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
   /**
-   * Configures the security filter chain for the application. This method sets up CORS, disables
-   * CSRF protection, and defines authorization rules.
+   * Configures the SecurityFilterChain to define security rules for HTTP requests.
    *
-   * @param http HttpSecurity object to configure security settings.
-   * @return SecurityFilterChain object with the configured security settings.
-   * @throws Exception if an error occurs during configuration.
+   * @param http HttpSecurity object to configure
+   * @return a configured SecurityFilterChain
+   * @throws Exception if an error occurs during configuration
    */
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.csrf(AbstractHttpConfigurer::disable) // Disable CSRF for API development
+    return http.csrf(csrf -> csrf.disable())
+        .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .authorizeHttpRequests(
-            authorize ->
-                authorize
-                    .requestMatchers("/api/auth/**")
-                    .permitAll() // Allow unauthenticated access to auth endpoints
-                    .anyRequest()
-                    .authenticated() // All other requests require authentication
-            )
         .sessionManagement(
-            session ->
-                session.sessionCreationPolicy(
-                    SessionCreationPolicy.STATELESS) // Use stateless sessions for REST API
-            )
-        .httpBasic(httpBasic -> {});
-
-    return http.build();
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .authorizeHttpRequests(
+            auth -> auth.requestMatchers("/api/auth/**").permitAll().anyRequest().authenticated())
+        .build();
   }
 
   /**
@@ -79,30 +77,39 @@ public class SecurityConfig {
   }
 
   /**
-   * Provides the AuthenticationManager bean for the application. This bean is used to manage
-   * authentication processes.
+   * Provides an AuthenticationManager bean. This is crucial for authentication in controllers,
+   * e.g., in your login endpoint.
    *
-   * @param authenticationConfiguration AuthenticationConfiguration object to retrieve the
-   *     AuthenticationManager.
-   * @return AuthenticationManager object.
-   * @throws Exception if an error occurs while retrieving the AuthenticationManager.
+   * @param authConfig AuthenticationConfiguration
+   * @return AuthenticationManager
+   * @throws Exception if an error occurs
    */
   @Bean
-  public AuthenticationManager authenticationManager(
-      AuthenticationConfiguration authenticationConfiguration) throws Exception {
-    return authenticationConfiguration.getAuthenticationManager();
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
+      throws Exception {
+    return authConfig.getAuthenticationManager();
   }
 
   /**
-   * Provides a PasswordEncoder bean for the application. This bean is used to encode passwords. For
-   * prototype purposes, it uses NoOpPasswordEncoder which does not perform any encoding.
+   * Provides a DaoAuthenticationProvider bean, which is used by the AuthenticationManager to
+   * authenticate users based on UserDetailsService and PasswordEncoder.
    *
-   * @return PasswordEncoder object.
+   * @return DaoAuthenticationProvider
+   */
+  @Bean
+  public DaoAuthenticationProvider authenticationProvider() {
+    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
+    authProvider.setPasswordEncoder(passwordEncoder());
+    return authProvider;
+  }
+
+  /**
+   * Provides a BCryptPasswordEncoder bean for password hashing.
+   *
+   * @return PasswordEncoder
    */
   @Bean
   public PasswordEncoder passwordEncoder() {
-    // FOR PROTOTYPE ONLY: Use NoOpPasswordEncoder for plain text passwords.
-    // In production, always use a strong password encoder like BCryptPasswordEncoder.
-    return NoOpPasswordEncoder.getInstance();
+    return new BCryptPasswordEncoder();
   }
 }
