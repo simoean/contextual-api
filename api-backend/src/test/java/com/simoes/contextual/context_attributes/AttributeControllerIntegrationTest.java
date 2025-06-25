@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@DisplayName("AttributeController Integration Tests")
 class AttributeControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;

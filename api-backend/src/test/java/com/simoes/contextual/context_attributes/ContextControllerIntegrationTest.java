@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@DisplayName("ContextController Integration Tests")
 class ContextControllerIntegrationTest {
 
   @Autowired private MockMvc mockMvc;

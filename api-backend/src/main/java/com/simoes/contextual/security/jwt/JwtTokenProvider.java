@@ -8,8 +8,10 @@ import java.security.Key;
 import java.util.Date;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import io.jsonwebtoken.security.SignatureException;
+import io.jsonwebtoken.security.WeakKeyException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,10 +21,9 @@ import org.springframework.stereotype.Component;
  * JwtTokenProvider is responsible for generating and validating JWT tokens. It uses the secret key
  * and expiration time defined in application properties.
  */
+@Slf4j
 @Component
 public class JwtTokenProvider {
-
-  private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
   @Value("${jwt.secret}")
   private String jwtSecret;
@@ -38,17 +39,18 @@ public class JwtTokenProvider {
    */
   public String generateToken(Authentication authentication) {
     // User class implements UserDetails
-    User userPrincipal = (User) authentication.getPrincipal();
+    User user = (User) authentication.getPrincipal();
 
     // Get roles as a comma-separated string for the custom claim
     String roles =
-        userPrincipal.getAuthorities().stream()
+        user.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .collect(Collectors.joining(","));
 
     return Jwts.builder()
         .claims()
-        .subject(userPrincipal.getUsername())
+        .id(user.getId())
+        .subject(user.getUsername())
         .issuedAt(new Date())
         .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
         .add("roles", roles)
@@ -87,13 +89,15 @@ public class JwtTokenProvider {
       Jwts.parser().verifyWith((SecretKey) key()).build().parseSignedClaims(authToken);
       return true;
     } catch (MalformedJwtException ex) {
-      logger.error("Invalid JWT token: {}", ex.getMessage());
+      log.error("Invalid JWT token: {}", ex.getMessage());
     } catch (ExpiredJwtException ex) {
-      logger.error("JWT token is expired: {}", ex.getMessage());
+      log.error("JWT token is expired: {}", ex.getMessage());
     } catch (UnsupportedJwtException ex) {
-      logger.error("JWT token is unsupported: {}", ex.getMessage());
+      log.error("JWT token is unsupported: {}", ex.getMessage());
+    } catch (SignatureException ex) {
+      log.error("Signature not valid: {}", ex.getMessage());
     } catch (IllegalArgumentException ex) {
-      logger.error("JWT claims string is empty: {}", ex.getMessage());
+      log.error("JWT claims string is empty: {}", ex.getMessage());
     }
     return false;
   }

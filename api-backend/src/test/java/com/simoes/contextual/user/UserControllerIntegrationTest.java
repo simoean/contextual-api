@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@DisplayName("UserController Integration Tests")
 class UserControllerIntegrationTest {
 
   // Injects MockMvc for making HTTP requests

@@ -1,6 +1,7 @@
 package com.simoes.contextual.auth;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,10 +10,12 @@ import lombok.NoArgsConstructor;
  * information and a message indicating the result of the authentication process.
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 class AuthResponse {
   private String userId;
   private String username;
   private String message;
+  private String token;
 }

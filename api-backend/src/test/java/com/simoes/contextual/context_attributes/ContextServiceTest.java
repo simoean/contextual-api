@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * mocking its external dependency, UserService.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ContextService Unit Tests")
 class ContextServiceTest {
 
   // Creates a mock instance of UserService

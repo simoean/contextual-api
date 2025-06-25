@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * mocking its external dependency, UserRepository.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("UserService Unit Tests")
 class UserServiceTest {
 
   // Creates a mock instance of UserRepository

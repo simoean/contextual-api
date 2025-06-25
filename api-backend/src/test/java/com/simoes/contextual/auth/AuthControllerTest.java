@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.simoes.contextual.security.jwt.JwtTokenProvider;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
 import java.util.Collections;
@@ -30,10 +31,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * mocking its external dependencies like AuthenticationManager and UserService.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AuthController Unit Tests")
 class AuthControllerTest {
 
   // Creates a mock instance of AuthenticationManager
   @Mock private AuthenticationManager authenticationManager;
+
+  // Creates a mock instance of JwtTokenProvider
+  @Mock private JwtTokenProvider jwtTokenProvider;
 
   // Creates a mock instance of UserService
   @Mock private UserService userService;
@@ -54,12 +59,14 @@ class AuthControllerTest {
     SecurityContextHolder.clearContext();
 
     // Common setup for test data
-    testLoginRequest = new LoginRequest("testuser", "testpassword");
+    testLoginRequest =
+        new LoginRequest(
+            "testuser", "$2a$10$6QNMDq1kYlRn16BdqEYIUudW3qJwNI.Fpqb9zpwnzyELvQJsNGomq");
     testUser =
         new User(
             "user123",
             "testuser",
-            "testpassword",
+            "$2a$10$6QNMDq1kYlRn16BdqEYIUudW3qJwNI.Fpqb9zpwnzyELvQJsNGomq",
             "test@example.com",
             Collections.singletonList("ROLE_USER"),
             Collections.emptyList(),
@@ -84,6 +91,9 @@ class AuthControllerTest {
     // Given: UserService successfully finds the user after authentication
     when(userService.findUserByUsername(testLoginRequest.getUsername()))
         .thenReturn(Optional.of(testUser));
+
+    // Given: JwtTokenProvider successfully generates a JWT token
+    when(jwtTokenProvider.generateToken(any(Authentication.class))).thenReturn("mocked-jwt-token");
 
     // When: The login endpoint is called
     ResponseEntity<AuthResponse> response = authController.authenticateUser(testLoginRequest);

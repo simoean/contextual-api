@@ -1,8 +1,10 @@
 package com.simoes.contextual.auth;
 
+import com.simoes.contextual.security.jwt.JwtTokenProvider;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,12 +21,19 @@ import org.springframework.web.bind.annotation.RestController;
  * Controller for handling authentication requests. This controller provides an endpoint for user
  * login, authenticating the user and another endpoint for user registration.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
+  public static final String WRONG_CREDENTIALS =
+      "Authentication failed. Please check your username and password, or register if you don't have an account.";
+  public static final String INTERNAL_ERROR =
+      "An internal server error occurred. Please try again later.";
+
   private final AuthenticationManager authenticationManager;
+  private final JwtTokenProvider jwtTokenProvider;
   private final UserService userService;
 
   /**
@@ -54,10 +63,17 @@ public class AuthController {
                       new RuntimeException(
                           "Authenticated user not found in service after authentication."));
 
-      // For prototype, return basic user info
+      // Generate the JWT token AFTER successful authentication
+      String jwt = jwtTokenProvider.generateToken(authentication);
+
+      // Create AuthResponse with the generated JWT token
       AuthResponse authResponse =
-          new AuthResponse(
-              authenticatedUser.getId(), authenticatedUser.getUsername(), "Login successful");
+          AuthResponse.builder()
+              .userId(authenticatedUser.getId())
+              .username(authenticatedUser.getUsername())
+              .message("Login successful")
+              .token(jwt)
+              .build();
 
       return ResponseEntity.ok(authResponse);
     } catch (BadCredentialsException e) {
@@ -65,20 +81,12 @@ public class AuthController {
       System.err.println(
           "Authentication failed for user " + loginRequest.getUsername() + ": " + e.getMessage());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(
-              new AuthResponse(
-                  null,
-                  null,
-                  "Authentication failed. Please check your username and password, or register if you don't have an account."));
+          .body(AuthResponse.builder().message(WRONG_CREDENTIALS).build());
     } catch (RuntimeException e) {
-      // Edge case: if the user is authenticated but failed to retrieve its data
-      System.err.println(
-          "AuthController internal error: Authenticated user not found in service post-authentication: "
-              + e.getMessage());
+      // Edge case: if the user is authenticated but failed to retrieve its data.
+      log.error("Authenticated user not found in service post-authentication: " + e.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(
-              new AuthResponse(
-                  null, null, "An internal server error occurred. Please try again later."));
+          .body(AuthResponse.builder().message(INTERNAL_ERROR).build());
     }
   }
 }
