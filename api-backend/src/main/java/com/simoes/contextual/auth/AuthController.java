@@ -76,15 +76,14 @@ public class AuthController {
               .build();
 
       return ResponseEntity.ok(authResponse);
-    } catch (BadCredentialsException e) {
+    } catch (BadCredentialsException ex) {
       // Wrong credentials provided
-      System.err.println(
-          "Authentication failed for user " + loginRequest.getUsername() + ": " + e.getMessage());
+      log.error("Authentication failed for user {}: {}", loginRequest.getUsername(), ex.getMessage(), ex);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .body(AuthResponse.builder().message(WRONG_CREDENTIALS).build());
-    } catch (RuntimeException e) {
+    } catch (RuntimeException ex) {
       // Edge case: if the user is authenticated but failed to retrieve its data.
-      log.error("Authenticated user not found in service post-authentication: " + e.getMessage());
+      log.error("Authenticated user not found in service post-authentication: " + ex.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(AuthResponse.builder().message(INTERNAL_ERROR).build());
     }
