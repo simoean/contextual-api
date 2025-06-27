@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import './App.css'; // Or './App-dark.css' if you prefer
+import './App.css';
 import LoginPage from './components/LoginPage';
 import ContextSelectionPage from './components/ContextSelectionPage';
 
 function App() {
+
+  // State variables to manage authentication status, user info, and dashboard mode
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
-  const [isDashboardMode, setIsDashboardMode] = useState(false); // New state for dashboard mode
+  const [isDashboardMode, setIsDashboardMode] = useState(false);
 
   // Check URL parameters on initial load
   useEffect(() => {
@@ -19,35 +21,35 @@ function App() {
 
   // This is called by LoginPage after successful authentication
   const handleLoginSuccess = (userData) => {
+    // userData here is: { userId, username: loggedInUsername, token }
     console.log("login-prompt App.js: handleLoginSuccess received userData (from LoginPage):", userData);
     setIsAuthenticated(true);
     setUserInfo(userData);
 
     // If in dashboard mode, immediately send success message and close
     if (isDashboardMode && window.opener) {
-      console.log("login-prompt App.js: In dashboard mode, sending LOGIN_SUCCESS_DASHBOARD and closing.");
+      console.log("In dashboard mode, sending LOGIN_SUCCESS_DASHBOARD and closing.");
       window.opener.postMessage(
-        { type: 'LOGIN_SUCCESS_DASHBOARD', userInfo: userData }, // Send basic userInfo
-        'http://localhost:3100' // Explicitly target user-dashboard's origin
+        { type: 'LOGIN_SUCCESS_DASHBOARD', userInfo: userData },
+        'http://localhost:3100'
       );
-      window.close(); // Close the login prompt window
+      window.close();
     }
-    // If NOT in dashboard mode, the flow continues to ContextSelectionPage
   };
 
   // This function will be called by ContextSelectionPage when the user confirms their context
-  // This logic is ONLY for when NOT in dashboard mode (e.g., for sample-client)
   const handleContextSelectionComplete = (selectedData) => {
-    console.log("login-prompt App.js: Context selection complete (non-dashboard mode), sending message to opener:", selectedData);
+    console.log("Context selection complete, sending response to client:", selectedData);
     if (window.opener) {
       window.opener.postMessage(
-        { type: 'LOGIN_SUCCESS', payload: selectedData },
-        'http://localhost:3200' // Explicitly target sample-client's origin
+        { type: 'LOGIN_SUCCESS', payload: { ...selectedData, token: userInfo.token } },
+        'http://localhost:3200'
       );
-      window.close(); // Close the login prompt window after sending the message
+      window.close();
     }
   };
 
+  // Render the main application
   return (
     <div className="App">
       <header className="App-header">
@@ -55,7 +57,7 @@ function App() {
         {!isAuthenticated ? (
           <LoginPage onLoginSuccess={handleLoginSuccess} />
         ) : (
-          // Conditionally render ContextSelectionPage ONLY if NOT in dashboard mode
+          // Conditionally render ContextSelectionPage only if not in dashboard mode
           !isDashboardMode ? (
             <ContextSelectionPage
               userInfo={userInfo}

@@ -1,28 +1,35 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function LoginPage({ onLoginSuccess }) { // onLoginSuccess prop to handle successful login
+function LoginPage({ onLoginSuccess }) {
+
+  // State variables for username, password, error message, and loading state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Function to handle form submission
   const handleSubmit = async (event) => {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Make a POST request to your Spring Boot backend's login endpoint
+      // Make a POST request to the backend's login endpoint
       const response = await axios.post('http://localhost:8080/api/auth/login', {
         username,
         password,
       });
 
       console.log('Login successful:', response.data);
-      // Assuming a successful response contains user ID/username
+
+      // Successful auth response contains userId, username, AND the JWT token
+      const { userId, username: loggedInUsername, token } = response.data;
+
       if (onLoginSuccess) {
-        onLoginSuccess(response.data); // Pass authenticated user data to parent component
+        // Pass the token along with other user data to the parent component
+        onLoginSuccess({ userId, username: loggedInUsername, token });
       }
 
     } catch (err) {
@@ -37,6 +44,7 @@ function LoginPage({ onLoginSuccess }) { // onLoginSuccess prop to handle succes
     }
   };
 
+  // Render the login form
   return (
     <div className="login-container">
       <h2>Login to Contextual Identity API</h2>

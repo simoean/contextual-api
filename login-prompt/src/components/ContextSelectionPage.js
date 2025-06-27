@@ -1,30 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import axios from 'axios';
 
-function ContextSelectionPage({ userInfo, onContextSelectionComplete }) {
+function ContextSelectionPage({userInfo, onContextSelectionComplete}) {
+
+  // State variables to manage contexts, selected context, attributes, shared attribute IDs, loading state, and error messages
   const [contexts, setContexts] = useState([]);
   const [selectedContext, setSelectedContext] = useState(null);
-  const [attributes, setAttributes] = useState([]); // This list holds public attributes from backend
-  const [sharedAttributeIds, setSharedAttributeIds] = useState([]); // NEW: IDs of attributes the user *chooses* to share
+  const [attributes, setAttributes] = useState([]);
+  const [sharedAttributeIds, setSharedAttributeIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const getAuthHeader = () => {
-    const base64Credentials = btoa(`${userInfo.username}:password`);
-    return {
-      'Authorization': `Basic ${base64Credentials}`
-    };
+    if (userInfo?.token) {
+      return {'Authorization': `Bearer ${userInfo.token}`};
+    }
+    return {};
   };
 
+  // Fetch contexts when userInfo is available
   useEffect(() => {
     const fetchContexts = async () => {
+      if (!userInfo?.token) return;
       setLoading(true);
       setError('');
       try {
-        const response = await axios.get(
-          'http://localhost:8080/api/users/me/contexts',
-          { headers: getAuthHeader() }
-        );
+        const response = await axios.get('http://localhost:8080/api/users/me/contexts', {
+          headers: getAuthHeader()
+        });
         setContexts(response.data);
       } catch (err) {
         console.error('Error fetching contexts:', err);
@@ -34,28 +37,21 @@ function ContextSelectionPage({ userInfo, onContextSelectionComplete }) {
       }
     };
 
-    if (userInfo && userInfo.username) {
-      fetchContexts();
-    }
+    fetchContexts();
   }, [userInfo]);
 
+  // Fetch attributes when a context is selected
   useEffect(() => {
     const fetchAttributes = async () => {
-      if (!selectedContext) {
-        setAttributes([]);
-        setSharedAttributeIds([]); // Clear shared selection
-        return;
-      }
+      if (!selectedContext || !userInfo?.token) return;
       setLoading(true);
       setError('');
       try {
-        // This request now gets ONLY public attributes from the backend
         const response = await axios.get(
           `http://localhost:8080/api/users/me/attributes/${selectedContext.id}`,
-          { headers: getAuthHeader() }
+          {headers: getAuthHeader()}
         );
         setAttributes(response.data);
-        // NEW: Automatically select all fetched public attributes for sharing by default
         setSharedAttributeIds(response.data.map(attr => attr.id));
       } catch (err) {
         console.error(`Error fetching attributes for context ${selectedContext.id}:`, err);
@@ -70,44 +66,44 @@ function ContextSelectionPage({ userInfo, onContextSelectionComplete }) {
     fetchAttributes();
   }, [selectedContext, userInfo]);
 
-  // NEW: Handler for attribute sharing checkboxes
   const handleShareCheckboxChange = (attributeId) => {
-    setSharedAttributeIds((prevSelected) => {
-      if (prevSelected.includes(attributeId)) {
-        return prevSelected.filter((id) => id !== attributeId); // Deselect
-      } else {
-        return [...prevSelected, attributeId]; // Select
-      }
+    setSharedAttributeIds((prev) =>
+      prev.includes(attributeId)
+        ? prev.filter((id) => id !== attributeId)
+        : [...prev, attributeId]
+    );
+  };
+
+  // Handle confirmation of context selection and shared attributes
+  const handleConfirmSelection = () => {
+    if (!selectedContext) {
+      setError("Please select a context before confirming.");
+      return;
+    }
+
+    const attributesToShare = attributes.filter(attr =>
+      sharedAttributeIds.includes(attr.id)
+    );
+
+    onContextSelectionComplete?.({
+      userId: userInfo.userId,
+      username: userInfo.username,
+      selectedContext,
+      contextualAttributes: attributesToShare
     });
   };
 
-
-  const handleConfirmSelection = () => {
-    if (selectedContext && onContextSelectionComplete) {
-      // NEW: Filter the attributes based on what the user chose to share
-      const attributesToShare = attributes.filter(attr => sharedAttributeIds.includes(attr.id));
-
-      console.log("login-prompt ContextSelectionPage: Confirming attributes to share:", attributesToShare);
-
-      onContextSelectionComplete({
-        userId: userInfo.userId,
-        username: userInfo.username,
-        selectedContext: selectedContext,
-        contextualAttributes: attributesToShare // Send only the attributes the user chose to share
-      });
-    } else if (!selectedContext) {
-      setError("Please select a context before confirming.");
-    }
-  };
-
+  // If loading, show a loading message
   if (loading && contexts.length === 0) {
     return <p>Loading contexts...</p>;
   }
 
+  // If there's an error, display it
   if (error) {
     return <p className="error-message">{error}</p>;
   }
 
+  // Render the context selection UI
   return (
     <div className="context-selection-container">
       <h2>Welcome, {userInfo?.username}!</h2>
@@ -134,28 +130,28 @@ function ContextSelectionPage({ userInfo, onContextSelectionComplete }) {
           {loading && attributes.length === 0 ? (
             <p>Loading attributes...</p>
           ) : attributes.length > 0 ? (
-            <ul className="attribute-list">
-              <p className="note-text-small">Select attributes to share with the client application:</p> {/* New instruction */}
-              {attributes.map((attr) => (
-                <li key={attr.id} className="attribute-share-item"> {/* Added class for styling */}
-                  <div className="attribute-info">
-                    <strong>{attr.name}:</strong> {attr.value}
-                    {/* (Public) is shown for user's information, but backend already filtered for public */}
-                    {attr.public ? ' (Public)' : ''}
-                  </div>
-                  <div className="attribute-share-toggle">
-                    <input
-                      type="checkbox"
-                      id={`share-${attr.id}`}
-                      checked={sharedAttributeIds.includes(attr.id)}
-                      onChange={() => handleShareCheckboxChange(attr.id)}
-                      className="form-checkbox"
-                    />
-                    <label htmlFor={`share-${attr.id}`} className="share-label">Share</label> {/* New label */}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="note-text-small">Select attributes to share with the client application:</p>
+              <ul className="attribute-list">
+                {attributes.map((attr) => (
+                  <li key={attr.id} className="attribute-share-item">
+                    <div className="attribute-info">
+                      <strong>{attr.name}:</strong> {attr.value}
+                      {attr.public ? ' (Public)' : ''}
+                    </div>
+                    <div className="attribute-share-toggle">
+                      <input
+                        type="checkbox"
+                        id={`share-${attr.id}`}
+                        checked={sharedAttributeIds.includes(attr.id)}
+                        onChange={() => handleShareCheckboxChange(attr.id)}
+                      />
+                      <label htmlFor={`share-${attr.id}`} className="share-label">Share</label>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <p>No public attributes found for this context.</p>
           )}
