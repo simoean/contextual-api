@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 
+/**
+ * AttributeForm component for adding or editing attributes.
+ * This component allows users to create or modify attributes with fields for name, value,
+ * public visibility, and associated contexts.
+ *
+ * @param attribute - The attribute object to edit, or null for a new attribute.
+ * @param onSave - Callback function to handle saving the attribute.
+ * @param onCancel - Callback function to handle canceling the form.
+ * @param contexts - Array of context objects to select from, each with an id and name.
+ * @returns {JSX.Element}
+ */
 function AttributeForm({ attribute, onSave, onCancel, contexts }) {
+
+  // State to manage form fields and error messages
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
   const [isPublic, setIsPublic] = useState(false);
@@ -12,8 +25,8 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     if (attribute) {
       setName(attribute.name);
       setValue(attribute.value);
-      setIsPublic(attribute.public); // Note: JSON uses 'public', Java uses 'isPublic'
-      setSelectedContextIds(attribute.contextIds || []); // Initialize with existing context IDs
+      setIsPublic(attribute.public);
+      setSelectedContextIds(attribute.contextIds || []);
     } else {
       // Clear form if adding new
       setName('');
@@ -24,16 +37,18 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     setErrorMessage('');
   }, [attribute]);
 
+  // Handle checkbox changes for contexts
   const handleContextCheckboxChange = (contextId) => {
     setSelectedContextIds((prevSelected) => {
       if (prevSelected.includes(contextId)) {
-        return prevSelected.filter((id) => id !== contextId); // Remove if already selected
+        return prevSelected.filter((id) => id !== contextId);
       } else {
-        return [...prevSelected, contextId]; // Add if not selected
+        return [...prevSelected, contextId];
       }
     });
   };
 
+  // Handle form submission
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!name.trim() || !value.trim()) {
@@ -42,16 +57,17 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     }
 
     const attributeToSave = {
-      id: attribute ? attribute.id : null, // Use existing ID if editing
+      id: attribute ? attribute.id : null,
       name: name.trim(),
       value: value.trim(),
-      public: isPublic, // Ensure 'public' field name matches JSON/backend
-      contextIds: selectedContextIds, // Send the array of selected context IDs
+      public: isPublic,
+      contextIds: selectedContextIds
     };
 
     onSave(attributeToSave);
   };
 
+  // Render the form
   return (
     <div className="dashboard-form-container">
       <h4>{attribute ? 'Edit Attribute' : 'Add New Attribute'}</h4>

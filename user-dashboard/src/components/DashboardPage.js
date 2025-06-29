@@ -1,242 +1,222 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, {useEffect, useState, useCallback} from 'react';
+import axiosInstance from '../api/axiosConfig';
+import useApi from '../hooks/useApi';
 import ContextForm from './ContextForm';
-import AttributeForm from './AttributeForm'; // Import the new AttributeForm
+import AttributeForm from './AttributeForm';
 
-function DashboardPage({ userInfo }) {
+function DashboardPage({userInfo}) {
+
+  // State to manage contexts and attributes (data specific to this page)
   const [contexts, setContexts] = useState([]);
   const [attributes, setAttributes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+
+  // Use the custom useApi hook to manage loading, error, and message states
+  const {loading, error, message, callApi, setError} = useApi();
 
   // State for Context editing
   const [showContextForm, setShowContextForm] = useState(false);
   const [editingContext, setEditingContext] = useState(null);
 
   // State for Attribute editing
-  const [showAttributeForm, setShowAttributeForm] = useState(false); // New state
-  const [editingAttribute, setEditingAttribute] = useState(null); // New state
+  const [showAttributeForm, setShowAttributeForm] = useState(false);
+  const [editingAttribute, setEditingAttribute] = useState(null);
 
+  // Function to fetch contexts and attributes for the dashboard
+  const fetchDashboardData = useCallback(async () => {
 
-  const getAuthHeader = () => {
-    const base64Credentials = btoa(`${userInfo.username}:password`);
-    return {
-      'Authorization': `Basic ${base64Credentials}`
-    };
-  };
+    // Ensure userInfo and token are available before making API calls
+    if (!userInfo || !userInfo.token) {
+      setError("Authentication token missing. Please log out and log in again.");
+      return;
+    }
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError('');
-    setMessage('');
     try {
-      if (!userInfo || !userInfo.username || !userInfo.userId) {
-        setError("User information missing to fetch data.");
-        setLoading(false);
-        return;
-      }
-
-      const contextsResponse = await axios.get(
-        'http://localhost:8080/api/users/me/contexts',
-        { headers: getAuthHeader() }
+      // Use callApi to wrap your data fetching
+      const fetchedContexts = await callApi(
+        () => axiosInstance.get('/users/me/contexts'),
+        '',
+        'Failed to load contexts.'
       );
-      setContexts(contextsResponse.data);
+      setContexts(fetchedContexts);
 
-      const attributesResponse = await axios.get(
-        'http://localhost:8080/api/users/me/attributes',
-        { headers: getAuthHeader() }
+      const fetchedAttributes = await callApi(
+        () => axiosInstance.get('/users/me/attributes'),
+        '',
+        'Failed to load attributes.'
       );
-      setAttributes(attributesResponse.data);
+      setAttributes(fetchedAttributes);
 
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
-      setContexts([]);
-      setAttributes([]);
-      if (err.response && err.response.status === 401) {
-        setError('Session expired or unauthorized. Please log out and log in again.');
-      }
-    } finally {
-      setLoading(false);
+      console.error("Error fetching dashboard data:", err);
     }
-  };
+  }, [userInfo, callApi, setError]);
 
+  // Fetch dashboard data when userInfo is available (useEffect still useful here)
   useEffect(() => {
-    if (userInfo && userInfo.username && userInfo.userId) {
-      fetchDashboardData();
+    if (userInfo && userInfo.token) {
+      fetchDashboardData().then(() => console.log("Dashboard data fetched successfully."));
     }
   }, [userInfo]);
 
   // --- Context CRUD Handlers ---
+
+  // Function to handle adding contexts
   const handleAddContext = () => {
     setEditingContext(null);
     setShowContextForm(true);
-    setShowAttributeForm(false); // Hide attribute form if active
+    setShowAttributeForm(false);
   };
 
+  // Function to handle editing contexts
   const handleEditContext = (contextId) => {
     const contextToEdit = contexts.find(ctx => ctx.id === contextId);
     if (contextToEdit) {
       setEditingContext(contextToEdit);
       setShowContextForm(true);
-      setShowAttributeForm(false); // Hide attribute form if active
+      setShowAttributeForm(false);
     } else {
       setError("Context not found for editing.");
     }
   };
 
-  const handleSaveContext = async (contextToSave) => {
-    setLoading(true);
-    setError('');
-    setMessage('');
+  // Function to handle saving contexts (both add and edit)
+  const handleSaveContext = useCallback(async (contextToSave) => {
+    if (!userInfo || !userInfo.token) { // Pre-check token presence
+      setError("Authentication token missing. Please log out and log in again.");
+      return;
+    }
     try {
-      let response;
-      if (contextToSave.id) {
-        response = await axios.put(
-          `http://localhost:8080/api/users/me/contexts/${contextToSave.id}`,
-          contextToSave,
-          { headers: getAuthHeader() }
-        );
-        setMessage(`Context "${response.data.name}" updated successfully!`);
-      } else {
-        response = await axios.post(
-          'http://localhost:8080/api/users/me/contexts',
-          contextToSave,
-          { headers: getAuthHeader() }
-        );
-        setMessage(`Context "${response.data.name}" added successfully!`);
-      }
+      await callApi(
+        () => contextToSave.id
+          ? axiosInstance.put(`/users/me/contexts/${contextToSave.id}`, contextToSave)
+          : axiosInstance.post('/users/me/contexts', contextToSave),
+        contextToSave.id
+          ? `Context "${contextToSave.name}" updated successfully!`
+          : `Context "${contextToSave.name}" added successfully!`,
+        `Failed to save context.`
+      );
 
-      fetchDashboardData();
+      await fetchDashboardData();
       setShowContextForm(false);
       setEditingContext(null);
-
     } catch (err) {
-      console.error('Error saving context:', err);
-      setError(`Failed to save context: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setLoading(false);
+      console.error("Error saving context:", err);
     }
-  };
+  }, [userInfo, callApi, fetchDashboardData, setError]);
 
+  // Function to handle cancelling the context form
   const handleCancelContextForm = () => {
     setShowContextForm(false);
     setEditingContext(null);
     setError('');
   };
 
-  const handleDeleteContext = async (contextId) => {
+  // Function to handle deleting contexts
+  const handleDeleteContext = useCallback(async (contextId) => {
     if (!window.confirm("Are you sure you want to delete this context? This cannot be undone and will remove context references from attributes.")) {
       return;
     }
-    setLoading(true);
-    setError('');
-    setMessage('');
-    try {
-      await axios.delete(
-        `http://localhost:8080/api/users/me/contexts/${contextId}`,
-        { headers: getAuthHeader() }
-      );
-      setMessage("Context deleted successfully!");
-      fetchDashboardData();
-    } catch (err) {
-      console.error('Error deleting context:', err);
-      setError(`Failed to delete context: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setLoading(false);
+    if (!userInfo || !userInfo.token) { // Pre-check token presence
+      setError("Authentication token missing. Please log out and log in again.");
+      return;
     }
-  };
+    try {
+      await callApi(
+        () => axiosInstance.delete(`/users/me/contexts/${contextId}`),
+        "Context deleted successfully!",
+        "Failed to delete context."
+      );
+      await fetchDashboardData();
+    } catch (err) {
+      console.error("Error deleting context:", err);
+    }
+  }, [userInfo, callApi, fetchDashboardData, setError]);
 
   // --- Attribute CRUD Handlers ---
+
+  // Function to handle adding attributes
   const handleAddAttribute = () => {
-    setEditingAttribute(null); // Clear existing attribute data for "Add" mode
+    setEditingAttribute(null);
     setShowAttributeForm(true);
-    setShowContextForm(false); // Hide context form if active
+    setShowContextForm(false);
   };
 
+  // Function to handle editing attributes
   const handleEditAttribute = (attributeId) => {
     const attributeToEdit = attributes.find(attr => attr.id === attributeId);
     if (attributeToEdit) {
       setEditingAttribute(attributeToEdit);
       setShowAttributeForm(true);
-      setShowContextForm(false); // Hide context form if active
+      setShowContextForm(false);
     } else {
       setError("Attribute not found for editing.");
     }
   };
 
-  const handleSaveAttribute = async (attributeToSave) => {
-    setLoading(true);
-    setError('');
-    setMessage('');
-    try {
-      let response;
-      if (attributeToSave.id) { // Existing attribute, so PUT (update)
-        response = await axios.put(
-          `http://localhost:8080/api/users/me/attributes/${attributeToSave.id}`,
-          attributeToSave,
-          { headers: getAuthHeader() }
-        );
-        setMessage(`Attribute "${response.data.name}" updated successfully!`);
-      } else { // New attribute, so POST (add)
-        response = await axios.post(
-          'http://localhost:8080/api/users/me/attributes',
-          attributeToSave,
-          { headers: getAuthHeader() }
-        );
-        setMessage(`Attribute "${response.data.name}" added successfully!`);
-      }
-
-      fetchDashboardData(); // Refresh the list after save
-      setShowAttributeForm(false); // Hide the form
-      setEditingAttribute(null); // Clear editing state
-
-    } catch (err) {
-      console.error('Error saving attribute:', err);
-      setError(`Failed to save attribute: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setLoading(false);
+  // Function to handle saving attributes (both add and edit)
+  const handleSaveAttribute = useCallback(async (attributeToSave) => {
+    if (!userInfo || !userInfo.token) {
+      setError("Authentication token missing. Please log out and log in again.");
+      return;
     }
-  };
+    try {
+      await callApi(
+        () => attributeToSave.id
+          ? axiosInstance.put(`/users/me/attributes/${attributeToSave.id}`, attributeToSave)
+          : axiosInstance.post('/users/me/attributes', attributeToSave),
+        attributeToSave.id
+          ? `Attribute "${attributeToSave.name}" updated successfully!`
+          : `Attribute "${attributeToSave.name}" added successfully!`,
+        `Failed to save attribute.`
+      );
 
+      await fetchDashboardData();
+      setShowAttributeForm(false);
+      setEditingAttribute(null);
+    } catch (err) {
+      console.error("Error saving attribute:", err);
+    }
+  }, [userInfo, callApi, fetchDashboardData, setError]);
+
+  // Function to handle cancelling the attribute form
   const handleCancelAttributeForm = () => {
     setShowAttributeForm(false);
     setEditingAttribute(null);
     setError('');
   };
 
-  const handleDeleteAttribute = async (attributeId) => {
+  // Function to handle deleting attributes
+  const handleDeleteAttribute = useCallback(async (attributeId) => {
     if (!window.confirm("Are you sure you want to delete this attribute? This cannot be undone.")) {
-      return; // User cancelled
+      return;
     }
-    setLoading(true);
-    setError('');
-    setMessage('');
+    if (!userInfo || !userInfo.token) {
+      setError("Authentication token missing. Please log out and log in again.");
+      return;
+    }
     try {
-      await axios.delete(
-        `http://localhost:8080/api/users/me/attributes/${attributeId}`,
-        { headers: getAuthHeader() }
+      await callApi(
+        () => axiosInstance.delete(`/users/me/attributes/${attributeId}`),
+        "Attribute deleted successfully!",
+        "Failed to delete attribute."
       );
-      setMessage("Attribute deleted successfully!");
-      fetchDashboardData(); // Refresh attributes after deletion
+      await fetchDashboardData();
     } catch (err) {
-      console.error('Error deleting attribute:', err);
-      setError(`Failed to delete attribute: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setLoading(false);
+      console.error("Error deleting attribute:", err);
     }
-  };
+  }, [userInfo, callApi, fetchDashboardData, setError]);
 
-
+  // Render loading state
   if (loading) {
     return <p>Loading your dashboard...</p>;
   }
 
+  // Render error messages if any
   if (error) {
     return <p className="error-message">{error}</p>;
   }
 
+  // Render content
   return (
     <div className="dashboard-container">
       <h2>Your Identity Dashboard</h2>
@@ -252,7 +232,7 @@ function DashboardPage({ userInfo }) {
             userId={userInfo.userId}
           />
         )}
-        {!showContextForm && !showAttributeForm && ( // Only show list if no form is active
+        {!showContextForm && !showAttributeForm && (
           <>
             <ul className="item-list">
               {contexts.length > 0 ? (
@@ -278,15 +258,15 @@ function DashboardPage({ userInfo }) {
 
       <div className="dashboard-section">
         <h3>Your Attributes</h3>
-        {showAttributeForm && ( // Show attribute form
+        {showAttributeForm && (
           <AttributeForm
             attribute={editingAttribute}
             onSave={handleSaveAttribute}
             onCancel={handleCancelAttributeForm}
-            contexts={contexts} // Pass contexts for selection
+            contexts={contexts}
           />
         )}
-        {!showAttributeForm && !showContextForm && ( // Only show list if no form is active
+        {!showAttributeForm && !showContextForm && (
           <>
             <ul className="item-list">
               {attributes.length > 0 ? (
@@ -295,7 +275,7 @@ function DashboardPage({ userInfo }) {
                     <span>
                       <strong>{attr.name}</strong>: {attr.value} (Public: {attr.public ? 'Yes' : 'No'})
                       {attr.contextIds && attr.contextIds.length > 0 && (
-                        <span style={{ marginLeft: '10px', fontSize: '0.9em', color: '#718096' }}>
+                        <span style={{marginLeft: '10px', fontSize: '0.9em', color: '#718096'}}>
                               (Contexts: {attr.contextIds.map(id => contexts.find(ctx => ctx.id === id)?.name || id).join(', ')})
                           </span>
                       )}

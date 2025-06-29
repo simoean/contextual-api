@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
+/**
+ * ContextForm component for adding or editing contexts.
+ * This component allows users to create or modify contexts with fields for name and description.
+ *
+ * @param context - The context object to edit, or null for a new context.
+ * @param onSave - Callback function to handle saving the context.
+ * @param onCancel - Callback function to handle canceling the form.
+ * @param userId - The ID of the user, used for consistency with backend expectations.
+ * @returns {JSX.Element}
+ */
 function ContextForm({ context, onSave, onCancel, userId }) {
+
+  // State to manage form fields and error messages
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -15,9 +27,10 @@ function ContextForm({ context, onSave, onCancel, userId }) {
       setName('');
       setDescription('');
     }
-    setErrorMessage(''); // Clear errors on context change
+    setErrorMessage('');
   }, [context]);
 
+  // Handle form submission
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!name.trim()) {
@@ -27,15 +40,16 @@ function ContextForm({ context, onSave, onCancel, userId }) {
 
     // Construct the context object to be saved
     const contextToSave = {
-      id: context ? context.id : null, // Use existing ID if editing, otherwise null for new
-      userId: userId, // Pass userId for consistency, though backend will get from auth
+      id: context ? context.id : null,
+      userId: userId,
       name: name.trim(),
       description: description.trim(),
     };
 
-    onSave(contextToSave); // Call the parent's save handler
+    onSave(contextToSave);
   };
 
+  // Render the form
   return (
     <div className="dashboard-form-container">
       <h4>{context ? 'Edit Context' : 'Add New Context'}</h4>
