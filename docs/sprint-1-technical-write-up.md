@@ -1,9 +1,18 @@
-# Technical Write-Up: Sprint 1 - Core Backend & User Control Enhancements
+# Technical Write-Up: Sprint 1 Summary – Backend Refactoring & Attribute Sharing Enhancements
 
 * **Project:** Contextual Identity API
 * **Developer:** Antonio Simoes
 * **Sprint Period:** Week 11 - Week 12
 * **Date:** 28.06.2025
+
+---
+
+### Executive Summary
+
+- Backend migrated from mock services to a MongoDB-based persistent store.
+- Secure authentication implemented using JWT and Spring Security.
+- Attribute-level user consent feature added during login.
+- Backend modularized and covered by unit + integration tests.
 
 ---
 
@@ -14,7 +23,7 @@
 
 * **Key Idea:** Provide granular control over personal data disclosure in various digital interactions.
 
-* **Technologies:** Java (Spring Boot), React, MongoDB, Liquibase.
+* **Technologies:** Java (Spring Boot), React JS, MongoDB, Liquibase.
 
 ---
 
@@ -74,25 +83,33 @@
       application startup.
 
 * **JWT-Based Authentication (Spring Security Integration):**
+
     * Integrated JWTs with Spring Security, configuring a custom `JwtAuthenticationFilter` to intercept, validate, and
       authenticate requests using tokens.
+
     * Employed `jjwt` library for secure JWT generation (HMAC-based signing) and robust token validation (expiration,
       signature integrity).
+
     * Configured stateless session management (`SessionCreationPolicy.STATELESS`) to support scalable, token-based
       authentication.
+
     * Implemented `AuthEntryPointJwt` for standardized unauthorized access responses (401 JSON errors) for API
       consumers.
 
 * **Password Hashing with BCrypt:**
+
     * Incorporated `BCryptPasswordEncoder` for strong, one-way hashing of user passwords, significantly improving
       security against brute-force and rainbow table attacks.
+
     * Updated Liquibase changelogs to store pre-hashed passwords, ensuring data integrity and consistency with the new
       security requirements.
 
 * **CORS Configuration for Frontend Integration:**
+
     * Enabled global CORS configuration in Spring Security to allow specific frontend
       origins (`http://localhost:3000`, `http://localhost:3100`, `http://localhost:3200`) to make cross-origin requests,
       including credentials and all headers.
+
     * This ensures seamless interaction between the React client applications and the backend API, resolving potential
       communication errors due to browser security policies.
 
@@ -157,8 +174,7 @@ and confidence in the API.
                   {
                     "_id": "user123",
                     "username": "john.doe",
-                    "username": "john.doe",
-                    "password": "password",
+                    "password": "$2a$10$hif81LnTErGnkgIRACHP2eXzk0P2RYJDRjN/mZCOAc7PrEhEeC8wW",
                     "email": "john.doe@example.com",
                     "roles": ["ROLE_USER"],
                     "contexts": [
@@ -171,9 +187,9 @@ and confidence in the API.
             # ... (jane.smith user insert example) ...
     ```
 
-    * **Explanation:** This YAML defines how initial user data, including their nested contexts and attributes, is
-      populated into MongoDB using Liquibase's `insertOne` command. This ensures a consistent starting state for the
-      database.
+This YAML defines how initial user data, including their nested contexts and attributes, is
+populated into MongoDB using Liquibase's `insertOne` command. This ensures a consistent starting state for the
+database.
 
 * **`IdentityAttribute` Model with `@Field`:**
 
@@ -190,10 +206,10 @@ and confidence in the API.
     }
     ```
 
-    * **Explanation:** The `@Field("id")` annotation explicitly tells Spring Data MongoDB to map the `id` field from the
-      MongoDB document (which is a standard field for nested objects, not MongoDB's special `_id`) to the `id` property
-      in our Java `IdentityAttribute` and `Context` objects. This was critical for correctly retrieving these IDs from
-      the database.
+The `@Field("id")` annotation explicitly tells Spring Data MongoDB to map the `id` field from the
+MongoDB document (which is a standard field for nested objects, not MongoDB's special `_id`) to the `id` property
+in our Java `IdentityAttribute` and `Context` objects. This was critical for correctly retrieving these IDs from
+the database.
 
 * **Frontend Selective Sharing Logic (`ContextSelectionPage.js`):**
 
@@ -222,10 +238,10 @@ and confidence in the API.
     };
     ```
 
-    * **Explanation:** This JavaScript logic from the `login-prompt`'s context selection page enables dynamic attribute
-      filtering. Users can check/uncheck attributes presented to them. The `handleConfirmSelection` function then
-      filters the list of attributes to be shared, sending only those explicitly selected by the user back to the
-      requesting client application.
+This JavaScript logic from the `login-prompt`'s context selection page enables dynamic attribute
+filtering. Users can check/uncheck attributes presented to them. The `handleConfirmSelection` function then
+filters the list of attributes to be shared, sending only those explicitly selected by the user back to the
+requesting client application.
 
 ---
 
@@ -297,4 +313,7 @@ and confidence in the API.
 
     * Implement unit tests for critical frontend components to ensure reliability.
 
+    * Introduce state management (e.g., Zustand, Redux) to simplify cross-component logic".
+
     * Develop a user registration feature.
+
