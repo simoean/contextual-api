@@ -25,6 +25,8 @@
 
 * **Technologies:** Java (Spring Boot), React JS, MongoDB, Liquibase.
 
+  ![System Architecture](img/sprint-1-system-architecture.png)
+
 ---
 
 ## 2. Sprint 1 Features and Objectives
@@ -95,6 +97,8 @@
 
     * Implemented `AuthEntryPointJwt` for standardized unauthorized access responses (401 JSON errors) for API
       consumers.
+
+  ![Login Flow](img/sprint-1-login-flow.png)
 
 * **Password Hashing with BCrypt:**
 
@@ -302,6 +306,9 @@ requesting client application.
 
 * **Next Steps (Sprint 2 Focus):**
 
+    * Merge the `login-prompt` and `user-dashboard` applications into a single React application for a unified user
+      experience.
+    
     * Refactor UI modules for better structure and maintainability, ensuring a clear separation of concerns.
 
     * Introduce a component library for reusable UI elements, enhancing consistency across the application.
