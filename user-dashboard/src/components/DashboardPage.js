@@ -1,17 +1,26 @@
 import React, {useEffect, useState, useCallback} from 'react';
+
 import axiosInstance from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import useApi from '../hooks/useApi';
+
 import ContextForm from './ContextForm';
 import AttributeForm from './AttributeForm';
 
-function DashboardPage({userInfo}) {
+import './App-dashboard.css';
+
+// DashboardPage component
+const DashboardPage = () => {
+
+  // State to manage authentication context
+  const { userInfo, isAuthenticated, isLoading, handleLogout } = useAuth(); //
+
+  // Use the custom useApi hook to manage loading, error, and message states
+  const {loading, error, message, callApi, setError} = useApi();
 
   // State to manage contexts and attributes (data specific to this page)
   const [contexts, setContexts] = useState([]);
   const [attributes, setAttributes] = useState([]);
-
-  // Use the custom useApi hook to manage loading, error, and message states
-  const {loading, error, message, callApi, setError} = useApi();
 
   // State for Context editing
   const [showContextForm, setShowContextForm] = useState(false);
@@ -51,12 +60,12 @@ function DashboardPage({userInfo}) {
     }
   }, [userInfo, callApi, setError]);
 
-  // Fetch dashboard data when userInfo is available (useEffect still useful here)
+  // Fetch dashboard data when userInfo is available or authentication state changes
   useEffect(() => {
     if (userInfo && userInfo.token) {
       fetchDashboardData().then(() => console.log("Dashboard data fetched successfully."));
     }
-  }, [userInfo]);
+  }, [userInfo, fetchDashboardData, isAuthenticated, isLoading]);
 
   // --- Context CRUD Handlers ---
 
@@ -221,6 +230,7 @@ function DashboardPage({userInfo}) {
     <div className="dashboard-container">
       <h2>Your Identity Dashboard</h2>
       {message && <p className="info-message">{message}</p>}
+      <button onClick={handleLogout} className="logout-button">Logout</button>
 
       <div className="dashboard-section">
         <h3>Your Contexts</h3>
@@ -229,7 +239,7 @@ function DashboardPage({userInfo}) {
             context={editingContext}
             onSave={handleSaveContext}
             onCancel={handleCancelContextForm}
-            userId={userInfo.userId}
+            userId={userInfo?.userId}
           />
         )}
         {!showContextForm && !showAttributeForm && (
@@ -263,7 +273,7 @@ function DashboardPage({userInfo}) {
             attribute={editingAttribute}
             onSave={handleSaveAttribute}
             onCancel={handleCancelAttributeForm}
-            contexts={contexts}
+            userId={userInfo?.userId}
           />
         )}
         {!showAttributeForm && !showContextForm && (

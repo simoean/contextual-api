@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 const useApi = () => {
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ const useApi = () => {
    * @param {string} [errorMsg='An error occurred.'] - Message to display on error.
    * @returns {Promise<any>} The data returned from the API call.
    */
-  const callApi = async (apiCallFn, successMsg = 'Operation successful!', errorMsg = 'An error occurred.') => {
+  const callApi = useCallback(async (apiCallFn, successMsg = 'Operation successful!', errorMsg = 'An error occurred.') => {
 
     // Reset state before making the API call
     setLoading(true);
@@ -34,7 +34,7 @@ const useApi = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Provide setters for message/error if a component wants to manually set them
   return { loading, error, message, callApi, setMessage, setError };

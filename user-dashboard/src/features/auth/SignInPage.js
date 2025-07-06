@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function LoginPage({ onLoginSuccess }) {
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import useAuthParams from '../../hooks/useAuthParams';
+
+import './App-signin.css';
+
+const SignInPage = () => {
 
   // State variables for username, password, error message, and loading state
   const [username, setUsername] = useState('');
@@ -9,46 +15,56 @@ function LoginPage({ onLoginSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Function to handle form submission
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
+  const navigate = useNavigate();
+
+  // Parse query parameters
+  const { clientId, redirectUri, isClientFlow } = useAuthParams();
+
+  const { handleLoginSuccess } = useAuth();
+
+  // Function to handle login success and redirect
+  const handleSignIn = async (e) => {
+    e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
-      // Make a POST request to the backend's login endpoint
       const response = await axios.post('http://localhost:8080/api/auth/login', {
         username,
         password,
       });
-
       console.log('Login successful:', response.data);
 
-      // Successful auth response contains userId, username, AND the JWT token
-      const { userId, username: loggedInUsername, token } = response.data;
+      // Update the authentication context with the user data
+      handleLoginSuccess(response.data);
 
-      if (onLoginSuccess) {
-        // Pass the token along with other user data to the parent component
-        onLoginSuccess({ userId, username: loggedInUsername, token });
+      if (isClientFlow) {
+        //  it's a client sign-in, redirect to ContextSelectionPage
+        navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+      } else {
+        // Navigate to the dashboard after successful login
+        navigate('/dashboard');
       }
 
     } catch (err) {
       console.error('Login error:', err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
+      if (err.response) {
+        setError(err.response.data.message || 'Login failed. Please check your credentials.');
+      } else if (err.request) {
+        setError('No response from server. Please try again later.');
       } else {
-        setError('Login failed. Please check your credentials and try again.');
+        setError('An unexpected error occurred.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Render the login form
+  // Render the sign-in form
   return (
     <div className="login-container">
       <h2>Login to Contextual Identity API</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSignIn}>
         <div className="form-group">
           <label htmlFor="username">Username:</label>
           <input
@@ -70,7 +86,7 @@ function LoginPage({ onLoginSuccess }) {
           />
         </div>
         <button type="submit" disabled={loading}>
-          {loading ? 'Logging In...' : 'Login'}
+          {loading ? 'Signing In...' : 'Sign In'}
         </button>
         {error && <p className="error-message">{error}</p>}
       </form>
@@ -78,4 +94,4 @@ function LoginPage({ onLoginSuccess }) {
   );
 }
 
-export default LoginPage;
+export default SignInPage;

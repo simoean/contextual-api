@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import axios from 'axios';
 
-function SignInPage({ onLoginSuccess }) {
+function SignInPage({onLoginSuccess}) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const openLoginPrompt = () => {
-    const loginPromptUrl = 'http://localhost:3000'; // Confirm this is where login-prompt runs
-    console.log(`sample-client SignInPage: Opening login prompt at ${loginPromptUrl}`);
+
+    // Unique identifier for this client
+    const CLIENT_ID = "sample-client-app";
+    const REDIRECT_URI = window.location.origin;
+
+    const loginPromptUrl = 'http://localhost:3000';
+    const loginPromptParams = `/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
 
     // Define the desired width and height for the popup
     const width = 800;
-    const height = 1000; // Adjusted height for better fit, 1000 might be too tall for some screens
+    const height = 1000;
 
     // Calculate the center position
     const left = (window.screen.width / 2) - (width / 2);
@@ -22,8 +27,8 @@ function SignInPage({ onLoginSuccess }) {
     // Construct the features string
     const features = `width=${width},height=${height},left=${left},top=${top},popup=yes,menubar=no,toolbar=no,location=no,status=no`;
 
-    console.log(`sample-client SignInPage: Opening login prompt at ${loginPromptUrl} with features: ${features}`);
-    const loginWindow = window.open(loginPromptUrl, '_blank', features);
+    console.log(`Opening login prompt at ${loginPromptUrl}`);
+    const loginWindow = window.open(loginPromptUrl + loginPromptParams, '_blank', features);
 
 
     // Add a listener for messages from the opened window (your login-prompt)
@@ -39,10 +44,18 @@ function SignInPage({ onLoginSuccess }) {
       }
 
       // Check if the message indicates a successful login and contains the payload
-      if (event.data && event.data.type === 'LOGIN_SUCCESS' && event.data.payload) {
-        console.log("sample-client SignInPage: LOGIN_SUCCESS payload received:", event.data.payload);
-        onLoginSuccess(event.data.payload); // Pass user info to parent App component
-        if (loginWindow && !loginWindow.closed) { // Check if window still exists before closing
+      if (event.data && event.data.type === 'LOGIN_SUCCESS') {
+        const { token, userId, username, selectedContext, contextualAttributes } = event.data; // <--- Access data directly
+
+        console.log("sample-client SignInPage: LOGIN_SUCCESS payload received");
+        onLoginSuccess({
+          token,
+          userId,
+          username,
+          selectedContext,
+          contextualAttributes
+        });
+        if (loginWindow && !loginWindow.closed) {
           loginWindow.close();
         }
         window.removeEventListener('message', messageListener); // Clean up listener
@@ -74,15 +87,19 @@ function SignInPage({ onLoginSuccess }) {
       const directLoginUserInfo = {
         userId: response.data.userId,
         username: response.data.username,
-        selectedContext: { id: defaultPersonalContextId, name: "Personal", description: "Default personal context for direct login." }, // Mock a selected context
+        selectedContext: {
+          id: defaultPersonalContextId,
+          name: "Personal",
+          description: "Default personal context for direct login."
+        }, // Mock a selected context
         contextualAttributes: [] // Will fetch these in App.js after this
       };
       // Fetch attributes after direct login to ensure display
       const base64Credentials = btoa(`${username}:password`);
-      const authHeader = { 'Authorization': `Basic ${base64Credentials}` };
+      const authHeader = {'Authorization': `Basic ${base64Credentials}`};
       const attrResponse = await axios.get(
         `http://localhost:8080/api/users/me/attributes/${defaultPersonalContextId}`,
-        { headers: authHeader }
+        {headers: authHeader}
       );
       directLoginUserInfo.contextualAttributes = attrResponse.data;
       onLoginSuccess(directLoginUserInfo); // Pass full info to App.js

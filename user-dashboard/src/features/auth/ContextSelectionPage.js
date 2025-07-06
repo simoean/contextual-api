@@ -1,25 +1,44 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import axios from 'axios';
 
-function ContextSelectionPage({userInfo, onContextSelectionComplete}) {
+import { useAuth } from '../../context/AuthContext';
+import useAuthParams from '../../hooks/useAuthParams';
 
-  // State variables to manage contexts, selected context, attributes, shared attribute IDs, loading state, and error messages
+import './App-signin.css';
+
+const ContextSelectionPage = () => {
+
+  // State variables to manage contexts, selected context, attributes, shared attribute IDs
   const [contexts, setContexts] = useState([]);
   const [selectedContext, setSelectedContext] = useState(null);
   const [attributes, setAttributes] = useState([]);
   const [sharedAttributeIds, setSharedAttributeIds] = useState([]);
+
+  // Loading the state and error messages
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const getAuthHeader = () => {
+  // Use the authentication context to get user info and authentication status
+  const { userInfo, isAuthenticated, isLoading } = useAuth();
+  const { isClientFlow, clientId, redirectUri } = useAuthParams();
+
+  const getAuthHeader = useCallback(() => {
     if (userInfo?.token) {
       return {'Authorization': `Bearer ${userInfo.token}`};
     }
     return {};
-  };
+  }, [userInfo.token]);
 
   // Fetch contexts when userInfo is available
   useEffect(() => {
+
+    // Add a check to ensure we are in a valid client flow context
+    if (!isLoading && (!isAuthenticated || !isClientFlow)) {
+      setError("Invalid access. Please log in through a client application.");
+      console.error("ContextSelectionPage: Missing authentication or client parameters for external flow.");
+      window.close();
+    }
+
     const fetchContexts = async () => {
       if (!userInfo?.token) return;
       setLoading(true);
@@ -37,8 +56,11 @@ function ContextSelectionPage({userInfo, onContextSelectionComplete}) {
       }
     };
 
-    fetchContexts();
-  }, [userInfo]);
+    // Only fetch contexts if authenticated and in a client flow
+    if (!isLoading && isAuthenticated && isClientFlow)
+      fetchContexts();
+
+  }, [userInfo, isLoading, isAuthenticated, isClientFlow, getAuthHeader]);
 
   // Fetch attributes when a context is selected
   useEffect(() => {
@@ -64,8 +86,9 @@ function ContextSelectionPage({userInfo, onContextSelectionComplete}) {
     };
 
     fetchAttributes();
-  }, [selectedContext, userInfo]);
+  }, [selectedContext, userInfo, getAuthHeader]);
 
+  // Handle checkbox changes for sharing attributes
   const handleShareCheckboxChange = (attributeId) => {
     setSharedAttributeIds((prev) =>
       prev.includes(attributeId)
@@ -75,22 +98,75 @@ function ContextSelectionPage({userInfo, onContextSelectionComplete}) {
   };
 
   // Handle confirmation of context selection and shared attributes
-  const handleConfirmSelection = () => {
+  const handleConfirmSelection = async () => { // Made async if you add API call here
     if (!selectedContext) {
       setError("Please select a context before confirming.");
       return;
     }
+    // Ensure we have client parameters and user info to send back
+    if (!isClientFlow || !clientId || !redirectUri || !userInfo?.token) {
+      setError("Cannot complete selection: Missing client or user information.");
+      return;
+    }
 
-    const attributesToShare = attributes.filter(attr =>
-      sharedAttributeIds.includes(attr.id)
-    );
+    setLoading(true);
+    setError('');
 
-    onContextSelectionComplete?.({
-      userId: userInfo.userId,
-      username: userInfo.username,
-      selectedContext,
-      contextualAttributes: attributesToShare
-    });
+    try {
+      const attributesToShare = attributes.filter(attr =>
+        sharedAttributeIds.includes(attr.id)
+      );
+
+      // --- Audit shared contexts for this client ---
+      /*
+      try {
+        await axios.post(
+          'http://localhost:8080/api/context-sharing/record', // Adjust API endpoint
+          {
+            clientId: clientId,
+            userId: userInfo.userId,
+            selectedContextId: selectedContext.id,
+            sharedAttributeIds: sharedAttributeIds
+          },
+          { headers: getAuthHeader() }
+        );
+        console.log("Context sharing recorded successfully on backend.");
+      } catch (backendErr) {
+        console.warn("Failed to record context sharing on backend (non-critical for client flow):", backendErr);
+        // Decide if this error should block the postMessage or just log a warning
+      }
+      */
+
+      // Construct the data payload to send back to the client
+      const payload = {
+        type: 'LOGIN_SUCCESS',
+        token: userInfo.token,
+        userId: userInfo.userId,
+        username: userInfo.username,
+        selectedContext: selectedContext,
+        contextualAttributes: attributesToShare,
+      };
+
+      // Use window.opener.postMessage to send the data back
+      if (window.opener && redirectUri) {
+        window.opener.postMessage(payload, redirectUri);
+        console.log("Sent payload back to client:", payload);
+      } else {
+        console.error("window.opener not found or redirectUri missing. Cannot post message.");
+        setError("Could not communicate with the client application. Please try again.");
+        return;
+      }
+
+      // Close the popup window
+      window.close();
+      console.log("Popup sign-in window closed.");
+
+    } catch (err) {
+      console.error('Error during context confirmation or communication:', err);
+      setError(err.response?.data?.message || 'An error occurred during context selection and communication.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // If loading, show a loading message
