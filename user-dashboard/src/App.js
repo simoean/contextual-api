@@ -1,6 +1,6 @@
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 
-import {AuthProvider, useAuth} from './context/AuthContext';
+import {useAuth} from './context/AuthContext';
 import DashboardPage from './components/DashboardPage';
 import SignInPage from './features/auth/SignInPage';
 import ContextSelectionPage from './features/auth/ContextSelectionPage';
@@ -16,46 +16,50 @@ const PrivateRoute = ({children}) => {
   return isAuthenticated ? children : <Navigate to="/auth" replace/>;
 };
 
-// Main App component
+/**
+ * Main Application Component
+ * This component sets up the main routes for the application using React Router.
+ *
+ * @returns {JSX.Element}
+ * @constructor
+ */
 const App = () => {
 
-  // If the user is not authenticated, redirect to login, otherwise show the dashboard
+  // If the user is not authenticated, redirect to sign in page, otherwise show the dashboard
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public route for login */}
-          <Route path="/auth">
-            {/* Default nested route shows SignInPage */}
-            <Route index element={<SignInPage />} />
-            {/* Nested route for context selection after sign-in (within client flow) */}
-            <Route path="context" element={<ContextSelectionPage />} />
-          </Route>
+      <Routes>
+        {/* Public route for login */}
+        <Route path="/auth">
+          {/* Default nested route shows SignInPage */}
+          <Route index element={<SignInPage/>}/>
+          {/* Nested route for context selection after sign-in (within client flow) */}
+          <Route path="context" element={<ContextSelectionPage/>}/>
+        </Route>
 
-          {/* Protected dashboard route */}
-          <Route
-            path="/dashboard/*"
-            element={
-              <PrivateRoute>
-                <DashboardPage/>
-              </PrivateRoute>
-            }
-          />
+        {/* Protected dashboard route */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <PrivateRoute>
+              <DashboardPage/>
+            </PrivateRoute>
+          }
+        />
 
-          {/* Default/Root path redirects based on authentication */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Navigate to="/dashboard" replace/>
-              </PrivateRoute>
-            }
-          />
+        {/* Default/Root path redirects based on authentication */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Navigate to="/dashboard" replace/>
+            </PrivateRoute>
+          }
+        />
 
-          {/* Default route shows 404 page */}
-          <Route path="*" element={<div>404: Page Not Found</div>}/>
-        </Routes>
-      </AuthProvider>
+        {/* Default route shows 404 page */}
+        <Route path="*" element={<div>404: Page Not Found</div>}/>
+      </Routes>
     </Router>
   );
 }

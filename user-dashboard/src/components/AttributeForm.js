@@ -16,7 +16,7 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
   // State to manage form fields and error messages
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [selectedContextIds, setSelectedContextIds] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -25,13 +25,13 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     if (attribute) {
       setName(attribute.name);
       setValue(attribute.value);
-      setIsPublic(attribute.public);
+      setVisible(attribute.visible);
       setSelectedContextIds(attribute.contextIds || []);
     } else {
       // Clear form if adding new
       setName('');
       setValue('');
-      setIsPublic(false);
+      setVisible(false);
       setSelectedContextIds([]);
     }
     setErrorMessage('');
@@ -60,7 +60,7 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
       id: attribute ? attribute.id : null,
       name: name.trim(),
       value: value.trim(),
-      public: isPublic,
+      visible: visible,
       contextIds: selectedContextIds
     };
 
@@ -97,12 +97,12 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
         <div className="form-group">
           <input
             type="checkbox"
-            id="isPublic"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
+            id="visible"
+            checked={visible}
+            onChange={(e) => setVisible(e.target.checked)}
             className="form-checkbox"
           />
-          <label htmlFor="isPublic" style={{ display: 'inline-block', marginLeft: '8px' }}>Is Public</label>
+          <label htmlFor="visible" style={{ display: 'inline-block', marginLeft: '8px' }}>Is Visible</label>
         </div>
 
         {/* Contexts Selection */}
