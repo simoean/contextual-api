@@ -1,5 +1,6 @@
 import {create} from 'zustand';
-import axiosInstance from '../api/axiosConfig';
+
+import axiosInstance from 'shared/api/axiosConfig';
 
 /**
  * Identity Store

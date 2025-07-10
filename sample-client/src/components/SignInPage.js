@@ -17,8 +17,8 @@ function SignInPage({onLoginSuccess}) {
     const loginPromptParams = `/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
 
     // Define the desired width and height for the popup
-    const width = 800;
-    const height = 1000;
+    const width = 600;
+    const height = 800;
 
     // Calculate the center position
     const left = (window.screen.width / 2) - (width / 2);

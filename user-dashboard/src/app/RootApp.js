@@ -1,9 +1,11 @@
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 
-import {useAuth} from './context/AuthContext';
-import DashboardPage from './components/DashboardPage';
-import SignInPage from './features/auth/SignInPage';
-import ContextSelectionPage from './features/auth/ContextSelectionPage';
+import {useAuth} from '../features/auth/context/AuthContext';
+
+import DashboardPage from '../features/dashboard/pages/DashboardPage';
+
+import SignInPage from '../features/auth/pages/SignInPage';
+import ContextSelectionPage from '../features/auth/pages/ContextSelectionPage';
 
 // Simple wrapper for private routes
 const PrivateRoute = ({children}) => {

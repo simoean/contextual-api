@@ -1,6 +1,11 @@
 import { useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
 
+/**
+ * Custom hook to extract authentication parameters from the URL query string.
+ *
+ * @returns {{redirectUri: string, clientId: string, isClientFlow: boolean}}
+ */
 const useAuthParams = () => {
   const location = useLocation();
 

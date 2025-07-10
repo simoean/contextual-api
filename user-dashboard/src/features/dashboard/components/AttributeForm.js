@@ -20,7 +20,9 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
   const [selectedContextIds, setSelectedContextIds] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Populate form fields if editing an existing attribute
+  /**
+   * Effect to populate form fields when editing an existing attribute.
+   */
   useEffect(() => {
     if (attribute) {
       setName(attribute.name);
@@ -37,7 +39,12 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     setErrorMessage('');
   }, [attribute]);
 
-  // Handle checkbox changes for contexts
+  /**
+   * Handle context checkbox change
+   * This function updates the selected context IDs when a checkbox is toggled.
+   *
+   * @param contextId
+   */
   const handleContextCheckboxChange = (contextId) => {
     setSelectedContextIds((prevSelected) => {
       if (prevSelected.includes(contextId)) {
@@ -48,7 +55,12 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     });
   };
 
-  // Handle form submission
+  /**
+   * Handle form submission
+   * This function validates the input and constructs the attribute object to be saved.
+   *
+   * @param event
+   */
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!name.trim() || !value.trim()) {
@@ -67,7 +79,9 @@ function AttributeForm({ attribute, onSave, onCancel, contexts }) {
     onSave(attributeToSave);
   };
 
-  // Render the form
+  /**
+   * Render the attribute form
+   */
   return (
     <div className="dashboard-form-container">
       <h4>{attribute ? 'Edit Attribute' : 'Add New Attribute'}</h4>

@@ -17,7 +17,9 @@ function ContextForm({ context, onSave, onCancel, userId }) {
   const [description, setDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Populate form fields if editing an existing context
+  /**
+   * Effect to populate form fields when editing an existing context.
+   */
   useEffect(() => {
     if (context) {
       setName(context.name);
@@ -30,7 +32,12 @@ function ContextForm({ context, onSave, onCancel, userId }) {
     setErrorMessage('');
   }, [context]);
 
-  // Handle form submission
+  /**
+   * Handle form submission
+   * This function validates the input and constructs the context object to be saved.
+   *
+   * @param event
+   */
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!name.trim()) {
@@ -49,7 +56,9 @@ function ContextForm({ context, onSave, onCancel, userId }) {
     onSave(contextToSave);
   };
 
-  // Render the form
+  /**
+   * Render the form for adding or editing a context.
+   */
   return (
     <div className="dashboard-form-container">
       <h4>{context ? 'Edit Context' : 'Add New Context'}</h4>

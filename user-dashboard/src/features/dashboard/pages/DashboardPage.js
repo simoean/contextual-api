@@ -1,12 +1,12 @@
 import React, {useEffect, useState, useCallback} from 'react';
 
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../auth/context/AuthContext';
 import { useIdentityStore } from "../store/identityStore";
 
-import ContextForm from './ContextForm';
-import AttributeForm from './AttributeForm';
+import ContextForm from '../components/ContextForm';
+import AttributeForm from '../components/AttributeForm';
 
-import './App-dashboard.css';
+import 'assets/styles/App-dashboard.css';
 
 /**
  * Dashboard Page

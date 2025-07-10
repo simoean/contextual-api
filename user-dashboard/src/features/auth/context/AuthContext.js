@@ -1,5 +1,5 @@
 import React, {createContext, useState, useEffect, useCallback, useContext, useMemo} from 'react';
-import {setGlobalLogoutHandler} from '../api/axiosConfig';
+import {setGlobalLogoutHandler} from 'shared/api/axiosConfig';
 
 // Create the AuthContext
 const AuthContext = createContext(null);

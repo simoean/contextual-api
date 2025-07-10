@@ -1,12 +1,12 @@
 import React, {useEffect, useMemo} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import {useIdentityStore} from '../../store/identityStore';
-import {useAuthenticationStore} from '../../store/authenticationStore';
+import {useAuthenticationStore} from '../store/authenticationStore';
+import {useIdentityStore} from '../../dashboard/store/identityStore';
 
-import {useAuth} from '../../context/AuthContext';
+import {useAuth} from '../context/AuthContext';
 
-import './App-signin.css';
+import 'assets/styles/App-signin.css';
 
 /**
  * Context Selection Page
