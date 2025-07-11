@@ -37,31 +37,23 @@ import {useAuthParams} from 'shared/hooks';
  */
 const SignInPage = () => {
 
-  // State variables for username, password, and loading state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const toast = useToast(); // <-- Initialize useToast hook
+  const toast = useToast();
 
-  // Parse query parameters
   const {clientId, redirectUri, isClientFlow} = useAuthParams();
 
   const {handleLoginSuccess} = useAuth();
 
-  // Chakra UI hook for color mode
   const { colorMode, toggleColorMode } = useColorMode();
-  const formBg = useColorModeValue('white', 'gray.700');
-  const textColor = useColorModeValue('gray.800', 'white');
 
-  /**
-   * Handle Sign In Action
-   * This function is triggered when the user submits the login form.
-   *
-   * @param e - The form submission event
-   * @returns {Promise<void>}
-   */
+  // Define colors for the card directly using useColorModeValue
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const cardBorderColor = useColorModeValue('gray.200', 'gray.600');
+
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -73,7 +65,6 @@ const SignInPage = () => {
       });
       console.log('Login successful:', response.data);
 
-      // Display success toast
       toast({
         title: "Login Successful!",
         description: "You have been successfully logged in.",
@@ -83,14 +74,11 @@ const SignInPage = () => {
         position: "bottom"
       });
 
-      // Update the authentication context with the user data
       handleLoginSuccess(response.data);
 
       if (isClientFlow) {
-        // It's a client sign-in, redirect to ContextSelectionPage
         navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
       } else {
-        // Navigate to the dashboard after successful login
         navigate('/dashboard');
       }
 
@@ -103,7 +91,6 @@ const SignInPage = () => {
         errorMessage = 'No response from server. Please try again later.';
       }
 
-      // Display error toast
       toast({
         title: "Login Failed",
         description: errorMessage,
@@ -117,10 +104,6 @@ const SignInPage = () => {
     }
   };
 
-  /**
-   * Handle Cancel Action
-   * This function is triggered when the user clicks the cancel button.
-   */
   const handleCancel = () => {
     if (isClientFlow) {
       if (window.opener && !window.opener.closed) {
@@ -134,38 +117,34 @@ const SignInPage = () => {
     }
   };
 
-  // Render the sign-in form
   return (
     <Container
       centerContent
       minH="100vh"
       minW="100vw"
-      bg={useColorModeValue('gray.50', 'gray.800')}
+      variant="fullPageBackground"
       py={12}
     >
       <Stack
         spacing={8}
         mx={'auto'}
+        maxW={'lg'}
         w={'90%'}
         py={12}
         px={6}
-        bg={formBg}
+        bg={cardBg}
         boxShadow={'lg'}
         rounded={'lg'}
-        color={textColor}
+        borderWidth="1px"
+        borderColor={cardBorderColor}
         position="relative"
       >
-        {/* Theme Toggle Button - Top Right */}
-        <Box position="absolute" top={0} right={4}>
+        <Box position="absolute" top={4} right={4}>
           <IconButton
             aria-label="Toggle color mode"
             icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
             onClick={toggleColorMode}
             size="md"
-            isRound={true}
-            bg={useColorModeValue('gray.200', 'gray.600')}
-            color={useColorModeValue('gray.800', 'white')}
-            _hover={{ bg: useColorModeValue('gray.300', 'gray.500') }}
           />
         </Box>
 
@@ -211,7 +190,7 @@ const SignInPage = () => {
               />
             </FormControl>
 
-            <HStack spacing={4} justifyContent="flex-end" w="100%">
+            <HStack spacing={4} mt={8} justifyContent="flex-end" w="100%">
               {isClientFlow && (
                 <Button
                   variant="solid"

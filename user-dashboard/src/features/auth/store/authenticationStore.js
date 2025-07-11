@@ -34,6 +34,13 @@ export const useAuthenticationStore = create((set) => ({
     })),
 
   /**
+   * Sets the selected attribute IDs directly.
+   *
+   * @param {string[]} ids - An array of attribute IDs to set as selected.
+   */
+  setSelectedAttributeIds: (ids) => set({ selectedAttributeIds: ids }),
+
+  /**
    * Resets the popup's authentication selections to their initial state.
    */
   resetSelection: () => set({ selectedContextId: null, selectedAttributeIds: [] }),
