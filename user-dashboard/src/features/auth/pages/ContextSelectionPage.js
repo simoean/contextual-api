@@ -39,12 +39,15 @@ import {useAuth} from '../context/AuthContext';
  */
 const ContextSelectionPage = () => {
 
+  // Hooks for navigation, location, and toast notifications
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
 
+  // Hooks for accessing contexts, attributes, and authentication state
   const {contexts, attributes, fetchIdentityData, isLoading: dataLoading, error: storeError} = useIdentityStore();
 
+  // Authentication store for managing selected context and attributes
   const {
     selectedContextId,
     selectedAttributeIds,
@@ -54,6 +57,7 @@ const ContextSelectionPage = () => {
     setSelectedAttributeIds
   } = useAuthenticationStore();
 
+  // Authentication context for user info and authentication state
   const {userInfo, isAuthenticated, isLoading: authLoading} = useAuth();
 
   const {colorMode, toggleColorMode} = useColorMode();

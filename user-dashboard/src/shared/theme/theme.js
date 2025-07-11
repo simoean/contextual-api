@@ -1,5 +1,6 @@
 import { extendTheme } from '@chakra-ui/react';
 
+// Define custom colors for the theme
 const colors = {
   brand: {
     50: '#e0f7f7',
@@ -27,6 +28,7 @@ const colors = {
   },
 };
 
+// App theme configuration
 const theme = extendTheme({
   colors,
   components: {
@@ -35,6 +37,8 @@ const theme = extendTheme({
         borderRadius: 'md',
         fontWeight: 'semibold',
       },
+
+      // Page and Action Button Variants
       variants: {
         solid: (props) => ({
           color: 'white',
@@ -77,14 +81,16 @@ const theme = extendTheme({
             bg: props.colorScheme === 'brand' ? 'brand.50' : (props.colorMode === 'light' ? 'gray.50' : 'gray.700'),
           },
         }),
+
+        // Contextual Button Variants - selected and unselected
         selectedContext: (props) => ({
           bg: props.colorMode === 'light' ? 'brand.500' : 'brand.600',
-          color: 'white', // This color should now directly apply to the button's text children
-          fontSize: 'lg', // Moved from Text component
-          fontWeight: 'semibold', // Moved from Text component
+          color: 'white',
+          fontSize: 'lg',
+          fontWeight: 'semibold',
           _hover: {
             bg: props.colorMode === 'light' ? 'brand.600' : 'brand.400',
-            color: props.colorMode === 'light' ? 'white' : 'white', // Set hover color for the button's text
+            color: props.colorMode === 'light' ? 'white' : 'white',
           },
           _active: {
             bg: props.colorMode === 'light' ? 'brand.700' : 'brand.400',
@@ -95,16 +101,18 @@ const theme = extendTheme({
           borderWidth: '2px',
           borderColor: props.colorMode === 'light' ? 'gray.200' : 'white',
           bg: props.colorMode === 'light' ? 'white' : 'gray.700',
-          color: props.colorMode === 'light' ? 'gray.700' : 'white', // Default color for unselected button text
-          fontSize: 'lg', // Moved from Text component
-          fontWeight: 'semibold', // Moved from Text component
+          color: props.colorMode === 'light' ? 'gray.700' : 'white',
+          fontSize: 'lg',
+          fontWeight: 'semibold',
           _hover: {
             bg: props.colorMode === 'light' ? 'brand.500' : 'brand.600',
-            color: 'white', // Set hover color for unselected button text
+            color: 'white',
           },
         }),
       },
     },
+
+    // Theme selector
     IconButton: {
       baseStyle: (props) => ({
         isRound: true,
@@ -116,6 +124,8 @@ const theme = extendTheme({
         },
       }),
     },
+
+    // Form components
     Input: {
       baseStyle: (props) => ({
         field: {

@@ -54,6 +54,13 @@ const SignInPage = () => {
   const cardBg = useColorModeValue('white', 'gray.700');
   const cardBorderColor = useColorModeValue('gray.200', 'gray.600');
 
+  /**
+   * Handles the sign-in process.
+   * This function is called when the user submits the login form.
+   *
+   * @param e
+   * @returns {Promise<void>}
+   */
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -65,6 +72,7 @@ const SignInPage = () => {
       });
       console.log('Login successful:', response.data);
 
+      // Show success toast
       toast({
         title: "Login Successful!",
         description: "You have been successfully logged in.",
@@ -74,8 +82,10 @@ const SignInPage = () => {
         position: "bottom"
       });
 
+      // Handle successful login
       handleLoginSuccess(response.data);
 
+      // Redirect based on the flow type
       if (isClientFlow) {
         navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
       } else {
@@ -83,6 +93,7 @@ const SignInPage = () => {
       }
 
     } catch (err) {
+      // Handle errors
       console.error('Login error:', err);
       let errorMessage = 'An unexpected error occurred.';
       if (err.response) {
@@ -91,6 +102,7 @@ const SignInPage = () => {
         errorMessage = 'No response from server. Please try again later.';
       }
 
+      // Show error toast
       toast({
         title: "Login Failed",
         description: errorMessage,
@@ -104,6 +116,9 @@ const SignInPage = () => {
     }
   };
 
+  /**
+   * Handles the cancel action.
+   */
   const handleCancel = () => {
     if (isClientFlow) {
       if (window.opener && !window.opener.closed) {
@@ -117,6 +132,7 @@ const SignInPage = () => {
     }
   };
 
+  // Render the SignInPage component
   return (
     <Container
       centerContent
