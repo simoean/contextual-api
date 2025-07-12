@@ -52,7 +52,7 @@ const theme = extendTheme({
             },
           }),
           ...(props.colorScheme === 'gray' && {
-            bg: props.colorMode === 'light' ? 'gray.400' : 'gray.600',
+            bg: props.colorMode === 'light' ? 'gray.300' : 'gray.600',
             color: props.colorMode === 'light' ? 'gray.800' : 'white',
             _hover: {
               bg: props.colorMode === 'light' ? 'gray.500' : 'gray.500',

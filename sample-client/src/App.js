@@ -40,7 +40,7 @@ function App() {
     sessionStorage.clear();
   };
 
-  const displayAttributes = userInfo?.contextualAttributes || [];
+  const displayAttributes = userInfo?.selectedAttributes || [];
 
   return (
     <div className="App">

@@ -74,6 +74,12 @@ const ContextSelectionPage = () => {
 
   const popupWidth = "600px";
 
+  // Extract the redirect_uri from the URL query parameters
+  const redirectUri = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('redirect_uri');
+  }, [location.search]);
+
   /**
    * Fetch Identity Data
    */
@@ -170,8 +176,8 @@ const ContextSelectionPage = () => {
       selectedAttributes: finalSelectedAttributes,
     };
 
-    if (window.opener) {
-      window.opener.postMessage({type: 'CONTEXT_AUTH_SUCCESS', payload: authData}, window.location.origin);
+    if (window.opener && redirectUri) {
+      window.opener.postMessage({type: 'CONTEXT_AUTH_SUCCESS', payload: authData}, redirectUri);
       window.close();
     } else {
       console.warn("No opener window found. Cannot send authentication data.");

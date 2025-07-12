@@ -1,12 +1,23 @@
 import React, {useState} from 'react';
 import axios from 'axios';
 
-function SignInPage({onLoginSuccess}) {
+/**
+ * SignInPage Component
+ * This component provides a sign-in interface for users to log in directly or via a contextual identity API.
+ *
+ * @param {function} onLoginSuccess - Callback function to handle successful login.
+ * @returns {JSX.Element}
+ * @constructor
+ */
+const SignInPage = ({onLoginSuccess}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Function to open the login prompt in a popup window.
+   */
   const openLoginPrompt = () => {
 
     // Unique identifier for this client
@@ -18,7 +29,7 @@ function SignInPage({onLoginSuccess}) {
 
     // Define the desired width and height for the popup
     const width = 600;
-    const height = 800;
+    const height = 1000;
 
     // Calculate the center position
     const left = (window.screen.width / 2) - (width / 2);
@@ -31,91 +42,48 @@ function SignInPage({onLoginSuccess}) {
     const loginWindow = window.open(loginPromptUrl + loginPromptParams, '_blank', features);
 
 
-    // Add a listener for messages from the opened window (your login-prompt)
+    // Add a listener for messages from the sign-in window
     const messageListener = (event) => {
       console.log("sample-client SignInPage: Message received!");
       console.log("sample-client SignInPage: Event origin:", event.origin);
       console.log("sample-client SignInPage: Event data:", event.data);
 
-      // Crucial: Check if the message comes from the expected origin
+      // Check if the message comes from the expected origin
       if (event.origin !== loginPromptUrl) {
         console.warn(`sample-client SignInPage: Message from unexpected origin: ${event.origin}`);
-        return; // Ignore messages from other origins
+        return;
       }
 
       // Check if the message indicates a successful login and contains the payload
-      if (event.data && event.data.type === 'LOGIN_SUCCESS') {
-        const { token, userId, username, selectedContext, contextualAttributes } = event.data; // <--- Access data directly
+      if (event.data && event.data.type === 'CONTEXT_AUTH_SUCCESS') {
+        const { token, userId, username, selectedContext, selectedAttributes } = event.data.payload;
 
-        console.log("sample-client SignInPage: LOGIN_SUCCESS payload received");
+        console.log("sample-client SignInPage: CONTEXT_AUTH_SUCCESS payload received");
         onLoginSuccess({
           token,
           userId,
           username,
           selectedContext,
-          contextualAttributes
+          selectedAttributes
         });
         if (loginWindow && !loginWindow.closed) {
           loginWindow.close();
         }
-        window.removeEventListener('message', messageListener); // Clean up listener
+        window.removeEventListener('message', messageListener);
       } else {
-        console.log("sample-client SignInPage: Message type not LOGIN_SUCCESS or payload missing.");
+        console.log("sample-client SignInPage: Message type not CONTEXT_AUTH_SUCCESS or payload missing.");
       }
     };
 
-    // Make sure the listener is added ONLY ONCE
-    // You might want to remove this listener on component unmount
     window.addEventListener('message', messageListener);
   };
 
+  // Handle direct login (mock implementation)
   const handleDirectLogin = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
-        username,
-        password,
-      });
-      console.log('Direct login successful:', response.data);
-      // For direct login, we simulate context selection immediately for display
-      // In a real scenario, a direct login might also redirect to a context selection flow on the sample client side
-      // For now, let's assume a default "Personal" context for direct login
-      const defaultPersonalContextId = 'ctx-pers'; // Assuming this ID for john.doe's personal context
-      const directLoginUserInfo = {
-        userId: response.data.userId,
-        username: response.data.username,
-        selectedContext: {
-          id: defaultPersonalContextId,
-          name: "Personal",
-          description: "Default personal context for direct login."
-        }, // Mock a selected context
-        contextualAttributes: [] // Will fetch these in App.js after this
-      };
-      // Fetch attributes after direct login to ensure display
-      const base64Credentials = btoa(`${username}:password`);
-      const authHeader = {'Authorization': `Basic ${base64Credentials}`};
-      const attrResponse = await axios.get(
-        `http://localhost:8080/api/users/me/attributes/${defaultPersonalContextId}`,
-        {headers: authHeader}
-      );
-      directLoginUserInfo.contextualAttributes = attrResponse.data;
-      onLoginSuccess(directLoginUserInfo); // Pass full info to App.js
-
-    } catch (err) {
-      console.error('Direct login error:', err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('Login failed. Please check your credentials and try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
+    alert("Mock Direct Login: This would send a sign in request to the client!");
   };
 
+  // Handle Google login (mock implementation)
   const handleGoogleLogin = () => {
     alert("Mock Google Login: This would redirect to Google's OAuth flow!");
   };
