@@ -24,10 +24,8 @@ import {
 import {MoonIcon, SunIcon} from '@chakra-ui/icons';
 import logo from 'assets/images/logo.png';
 
-import {useAuthenticationStore} from '../store/authenticationStore';
-import {useIdentityStore} from '../../dashboard/store/identityStore';
-
-import {useAuth} from '../context/AuthContext';
+import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
+import {useIdentityStore} from 'features/dashboard/store/identityStore';
 
 /**
  * Context Selection Page
@@ -49,6 +47,10 @@ const ContextSelectionPage = () => {
 
   // Authentication store for managing selected context and attributes
   const {
+    userInfo,
+    accessToken,
+    isAuthenticated,
+    isLoading: authLoading,
     selectedContextId,
     selectedAttributeIds,
     setSelectedContextId,
@@ -56,9 +58,6 @@ const ContextSelectionPage = () => {
     resetSelection,
     setSelectedAttributeIds
   } = useAuthenticationStore();
-
-  // Authentication context for user info and authentication state
-  const {userInfo, isAuthenticated, isLoading: authLoading} = useAuth();
 
   const {colorMode, toggleColorMode} = useColorMode();
 
@@ -84,7 +83,7 @@ const ContextSelectionPage = () => {
    * Fetch Identity Data
    */
   useEffect(() => {
-    if (!authLoading && isAuthenticated && userInfo?.token && contexts.length === 0 && attributes.length === 0) {
+    if (!authLoading && isAuthenticated && accessToken && contexts.length === 0 && attributes.length === 0) {
       console.log("ContextSelectionPage: Fetching identity data.");
       fetchIdentityData(userInfo);
     }
@@ -169,7 +168,7 @@ const ContextSelectionPage = () => {
     );
 
     const authData = {
-      token: userInfo?.token,
+      token: accessToken,
       userId: userInfo?.userId,
       username: userInfo?.username,
       selectedContext: finalSelectedContext,
@@ -224,7 +223,7 @@ const ContextSelectionPage = () => {
   }
 
   // Conditional Render for unauthenticated users
-  if (!isAuthenticated || !userInfo?.token) {
+  if (!isAuthenticated || !accessToken) {
     return (
       <Container centerContent height="100vh" display="flex" flexDirection="column" justifyContent="center"
                  alignItems="center"

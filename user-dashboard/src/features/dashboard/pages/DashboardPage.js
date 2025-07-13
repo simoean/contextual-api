@@ -27,22 +27,28 @@ import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarLeftExpand } from 'react-ic
 import { FaTags, FaSignOutAlt, FaRedoAlt } from 'react-icons/fa';
 
 import logo from 'assets/images/logo.png';
-import { useAuth } from 'features/auth/context/AuthContext';
+
 import { useIdentityStore } from 'features/dashboard/store/identityStore';
 
 import ContextsContent from 'features/dashboard/components/ContextsContent';
 import AttributesContent from 'features/dashboard/components/AttributesContent';
+import {useAuthenticationStore} from "features/auth/store/authenticationStore";
 
 const DashboardPage = () => {
 
+  // Hooks for navigation and authentication
   const navigate = useNavigate();
-  const { userInfo, isAuthenticated, isLoading: authLoading, handleLogout, setUserInfo } = useAuth();
-  const { contexts, attributes, fetchIdentityData, isLoading: dataLoading, error: storeError } = useIdentityStore();
   const { colorMode, toggleColorMode } = useColorMode();
 
+  // Authentication state and actions from the AuthContext
+  const { userInfo, isAuthenticated, isLoading: authLoading, logout, accessToken } = useAuthenticationStore();
+  const { contexts, attributes, fetchIdentityData, isLoading: dataLoading, error: storeError } = useIdentityStore();
+
+  // Local state for sidebar and current page
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [currentPage, setCurrentPage] = useState('contexts');
 
+  // Color mode values for styling
   const headerBg = useColorModeValue('gray.100', 'gray.700');
   const headerBorderColor = useColorModeValue('gray.200', 'gray.600');
   const sidebarBg = useColorModeValue('gray.50', 'gray.800');
@@ -53,10 +59,10 @@ const DashboardPage = () => {
   const appNameColor = useColorModeValue('brand.500', 'brand.300');
   const contentBg = useColorModeValue('white', 'gray.700');
   const contentBorderColor = useColorModeValue('gray.200', 'gray.600');
-
   const pageLoadingBg = useColorModeValue('gray.50', 'gray.800');
   const pageLoadingTextColor = useColorModeValue('gray.800', 'white');
 
+  // Constants for layout dimensions
   const headerHeight = '70px';
   const sidebarCollapsedWidth = '70px';
   const sidebarExpandedWidth = '220px';
@@ -67,29 +73,24 @@ const DashboardPage = () => {
    * It will also re-fetch if there was a previous storeError, giving it a chance to clear.
    */
   useEffect(() => {
-    console.log("DashboardPage useEffect: authLoading", authLoading, "isAuthenticated", isAuthenticated, "userInfo?.token", userInfo?.token, "storeError", storeError);
-
     // Only attempt to fetch if authentication is not loading, user is authenticated, and a token exists.
-    if (!authLoading && isAuthenticated && userInfo?.token) {
-      // If contexts or attributes are empty, or if there's a storeError (indicating a previous fetch failed)
-      // then attempt to fetch data. This ensures we try to fetch on initial load
-      // and re-try if a previous attempt resulted in an error.
+    if (!authLoading && isAuthenticated && accessToken) {
       if (contexts.length === 0 || attributes.length === 0 || storeError) {
         console.log("DashboardPage: Triggering identity data fetch.");
-        fetchIdentityData(userInfo);
+        fetchIdentityData(accessToken);
       }
     }
-  }, [userInfo, isAuthenticated, authLoading, fetchIdentityData, contexts.length, attributes.length, storeError]);
+  }, [accessToken, isAuthenticated, authLoading, fetchIdentityData, contexts.length, attributes.length, storeError]);
 
   /**
    * Effect hook to handle redirection for unauthenticated users.
    */
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!authLoading && (!isAuthenticated || !accessToken)) {
       console.log("DashboardPage: Not authenticated, redirecting to sign in.");
       navigate('/auth');
     }
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, accessToken, navigate]);
 
   const navItems = [
     { id: 'contexts', label: 'Contexts', icon: GiAwareness },
@@ -98,13 +99,11 @@ const DashboardPage = () => {
 
   // Function to retry fetching data (for the "Try Again" button on error screen)
   const handleRetryFetch = () => {
-    if (userInfo?.token) {
+    if (accessToken) {
       console.log("DashboardPage: Retrying identity data fetch.");
-      fetchIdentityData(userInfo);
+      fetchIdentityData(accessToken);
     } else {
       console.log("DashboardPage: Cannot retry fetch, authentication token not available.");
-      // Optionally, set a local state to show a temporary message or redirect
-      // if retry without token is clicked
     }
   };
 
@@ -121,7 +120,6 @@ const DashboardPage = () => {
   }
 
   // Displays a full-page error message if there's a store-related error
-  // This now has improved styling and a retry button
   if (storeError) {
     return (
       <Flex direction="column" align="center" justify="center" h="100vh" bg={pageLoadingBg}>
@@ -159,7 +157,7 @@ const DashboardPage = () => {
   }
 
   // Displays a full-page warning if the user is unauthenticated (as a fallback)
-  if (!isAuthenticated || !userInfo?.token) {
+  if (!isAuthenticated || !accessToken) {
     return (
       <Flex direction="column" align="center" justify="center" h="100vh" bg={pageLoadingBg}>
         <Alert
@@ -215,6 +213,11 @@ const DashboardPage = () => {
         </HStack>
         <Spacer />
         <HStack spacing={4}>
+          {userInfo && userInfo.username && (
+            <Text fontSize="lg" fontWeight="semibold" color={sidebarTextColor}>
+              Hello, {userInfo.username}!
+            </Text>
+          )}
           <IconButton
             aria-label="Toggle color mode"
             icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
@@ -225,7 +228,7 @@ const DashboardPage = () => {
           <IconButton
             aria-label="Sign Out"
             icon={<FaSignOutAlt />}
-            onClick={handleLogout}
+            onClick={logout}
             size="md"
             isRound={true}
           />
@@ -307,19 +310,19 @@ const DashboardPage = () => {
           minH={`calc(100vh - ${headerHeight} - 4rem)`}
         >
           {(() => {
-            // Destructure actions from the store state to ensure they have access to userInfo
+            // Destructure actions from the store state to ensure they have access to accessToken
             const {
               addContext, updateContext, deleteContext,
               addAttribute, updateAttribute, deleteAttribute
             } = (() => {
               const store = useIdentityStore.getState();
               return {
-                addContext: (payload) => store.addContext(payload, userInfo),
-                updateContext: (id, payload) => store.updateContext(id, payload, userInfo),
-                deleteContext: (id) => store.deleteContext(id, userInfo),
-                addAttribute: (payload) => store.addAttribute(payload, userInfo),
-                updateAttribute: (id, payload) => store.updateAttribute(id, payload, userInfo),
-                deleteAttribute: (id) => store.deleteAttribute(id, userInfo),
+                addContext: (payload) => store.addContext(payload, accessToken),
+                updateContext: (id, payload) => store.updateContext(id, payload, accessToken),
+                deleteContext: (id) => store.deleteContext(id, accessToken),
+                addAttribute: (payload) => store.addAttribute(payload, accessToken),
+                updateAttribute: (id, payload) => store.updateAttribute(id, payload, accessToken),
+                deleteAttribute: (id) => store.deleteAttribute(id, accessToken),
               };
             })();
 
@@ -333,22 +336,16 @@ const DashboardPage = () => {
                     updateContext={updateContext}
                     deleteContext={deleteContext}
                     fetchIdentityData={fetchIdentityData}
-                    userInfo={userInfo}
-                    setUserInfo={setUserInfo}
                   />
                 );
               case 'attributes':
-                const selectedContextForAttributes = userInfo?.selectedContext || null;
                 return (
                   <AttributesContent
                     attributes={attributes}
-                    selectedContext={selectedContextForAttributes}
                     addAttribute={addAttribute}
                     updateAttribute={updateAttribute}
                     deleteAttribute={deleteAttribute}
                     fetchIdentityData={fetchIdentityData}
-                    userInfo={userInfo}
-                    setUserInfo={setUserInfo}
                     setCurrentPage={setCurrentPage}
                   />
                 );
@@ -361,8 +358,6 @@ const DashboardPage = () => {
                     updateContext={updateContext}
                     deleteContext={deleteContext}
                     fetchIdentityData={fetchIdentityData}
-                    userInfo={userInfo}
-                    setUserInfo={setUserInfo}
                   />
                 );
             }

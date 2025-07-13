@@ -3,17 +3,28 @@ import React from 'react';
 
 import {Flex, Spinner, Text, useColorModeValue} from '@chakra-ui/react';
 
-import {useAuth} from 'features/auth/context/AuthContext';
+import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 
 import DashboardPage from 'features/dashboard/pages/DashboardPage';
 
 import SignInPage from 'features/auth/pages/SignInPage';
 import ContextSelectionPage from 'features/auth/pages/ContextSelectionPage';
+import SignUpPage from 'features/auth/pages/SignUpPage';
 
-// Simple wrapper for private routes
+/**
+ * PrivateRoute Component
+ * This component checks if the user is authenticated before rendering its children.
+ *
+ * @param children - The child components to render if the user is authenticated.
+ * @returns {*|JSX.Element}
+ * @constructor
+ */
 const PrivateRoute = ({children}) => {
-  const {isAuthenticated, isLoading} = useAuth();
 
+  // Use the authentication context to check if the user is authenticated
+  const {isAuthenticated, isLoading} = useAuthenticationStore();
+
+  // Color mode values for background and text
   const bgColour = useColorModeValue('gray.50', 'gray.800');
   const textColour = useColorModeValue('gray.800', 'white');
 
@@ -43,21 +54,20 @@ const PrivateRoute = ({children}) => {
  * @constructor
  */
 const App = () => {
+
   // Get the login function from your AuthContext.
-  // This function is responsible for updating the isAuthenticated and userInfo state in the context.
-  const {login: authLogin} = useAuth();
+  const {login: authLogin} = useAuthenticationStore();
 
   /**
    * Callback function passed to SignInPage upon successful login.
    * It receives the authentication payload and delegates to the AuthContext's login function.
+   *
    * @param {object} payloadData - The authentication data (token, user info, selected context/attributes).
    */
   const handleSignInSuccess = (payloadData) => {
     console.log("App.js: handleSignInSuccess received authentication payload:", payloadData);
     // Call the login function from AuthContext to update the global authentication state
     authLogin(payloadData);
-    // React Router's PrivateRoute will automatically handle navigation to /dashboard
-    // once isAuthenticated becomes true in the AuthContext.
   };
 
   return (
@@ -69,6 +79,8 @@ const App = () => {
           <Route index element={<SignInPage onLoginSuccess={handleSignInSuccess}/>}/>
           {/* Nested route for context selection after sign-in (within the client flow) */}
           <Route path="context" element={<ContextSelectionPage/>}/>
+          {/* Nested route for user sign-up */}
+          <Route path="signup" element={<SignUpPage/>}/>
         </Route>
 
         {/* Protected dashboard route */}

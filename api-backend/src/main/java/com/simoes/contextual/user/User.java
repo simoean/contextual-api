@@ -3,6 +3,7 @@ package com.simoes.contextual.user;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -12,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
  * details, including username, password, email, roles, contexts, and identity attributes.
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "users")
@@ -29,8 +32,12 @@ public class User implements UserDetails {
   private String password;
   private String email;
   private List<String> roles;
-  private List<Context> contexts;
-  private List<IdentityAttribute> attributes;
+
+  @Builder.Default // <--- ADD THIS
+  private List<Context> contexts = Collections.emptyList();
+
+  @Builder.Default // <--- ADD THIS
+  private List<IdentityAttribute> attributes = Collections.emptyList();
 
   /**
    * Returns the authorities granted to the user.

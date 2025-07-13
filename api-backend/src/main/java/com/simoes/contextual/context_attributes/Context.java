@@ -1,9 +1,6 @@
 package com.simoes.contextual.context_attributes;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.With;
+import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
@@ -12,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
  */
 @Data
 @With
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Context {

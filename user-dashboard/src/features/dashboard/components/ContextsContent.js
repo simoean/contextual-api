@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, {useState, useRef} from 'react';
 
 import {
   VStack,
@@ -19,6 +19,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Textarea,
   useDisclosure,
   useToast,
   AlertDialog,
@@ -32,7 +33,9 @@ import {
   Badge,
 } from '@chakra-ui/react';
 
-import { FaPlus, FaEdit, FaTrashAlt } from 'react-icons/fa';
+import {FaPlus, FaEdit, FaTrashAlt} from 'react-icons/fa';
+
+import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 
 /**
  * ContextsContent Component
@@ -71,19 +74,22 @@ const ContextsContent = ({
   const selectedCardShadow = useColorModeValue('lg', 'dark-lg');
 
   // State and disclosure hook for Add/Edit Context Modal
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const {isOpen, onOpen, onClose} = useDisclosure();
   const [isEditing, setIsEditing] = useState(false);
   const [currentContext, setCurrentContext] = useState(null);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
   // State and disclosure hook for Delete Confirmation AlertDialog
-  const { isOpen: isDeleteAlertOpen, onOpen: onDeleteAlertOpen, onClose: onDeleteAlertClose } = useDisclosure();
+  const {isOpen: isDeleteAlertOpen, onOpen: onDeleteAlertOpen, onClose: onDeleteAlertClose} = useDisclosure();
   const cancelRef = useRef();
   const [contextToDelete, setContextToDelete] = useState(null);
 
   // Toast hook for displaying user notifications
   const toast = useToast();
+
+  // Get the selectedContextId function from the Auth context
+  const {selectedContextId, setSelectedContextId} = useAuthenticationStore();
 
   /**
    * Resets form and opens modal for adding new context.
@@ -172,7 +178,7 @@ const ContextsContent = ({
       await deleteContext(contextToDelete.id);
       // If the deleted context was the selected one, clear it
       if (userInfo?.selectedContext?.id === contextToDelete.id) {
-        setUserInfo(prev => ({ ...prev, selectedContext: null }));
+        setUserInfo(prev => ({...prev, selectedContext: null}));
       }
       toast({
         title: "Context deleted.",
@@ -205,15 +211,15 @@ const ContextsContent = ({
    */
   const handleContextSelect = (context) => {
     // Check if the clicked context is already the currently selected context
-    const isAlreadySelected = userInfo?.selectedContext?.id === context.id;
+    const isAlreadySelected = selectedContextId === context.id;
 
     if (isAlreadySelected) {
       // If it's already selected, deselect it
-      setUserInfo(prev => ({ ...prev, selectedContext: null }));
+      setSelectedContextId(null);
       console.log("Context deselected.");
     } else {
       // If it's not selected, select it
-      setUserInfo(prev => ({ ...prev, selectedContext: context }));
+      setSelectedContextId(context.id);
       console.log(`Context "${context.name}" selected.`);
     }
   };
@@ -223,18 +229,19 @@ const ContextsContent = ({
     <VStack align="flex-start" spacing={6} w="full">
       <HStack justifyContent="space-between" w="full">
         <Heading as="h2" size="xl" color={headingColor}>Your Contexts</Heading>
-        <Button leftIcon={<FaPlus />} colorScheme={buttonColorScheme} onClick={handleAddClick}>
+        <Button leftIcon={<FaPlus/>} colorScheme={buttonColorScheme} onClick={handleAddClick}>
           Add Context
         </Button>
       </HStack>
       <Text fontSize="lg" color={textColor}>
-        Manage your contextual identities here. Click on a context to view its associated attributes. Click again to deselect.
+        Manage your contextual identities here. Click on a context to view its associated attributes. Click again to
+        deselect.
       </Text>
 
       {contexts.length > 0 ? (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} w="full">
+        <SimpleGrid columns={{base: 1, md: 2, lg: 3}} spacing={6} w="full">
           {contexts.map((context) => {
-            const isSelected = userInfo?.selectedContext?.id === context.id;
+            const isSelected = selectedContextId === context.id;
 
             // Filter attributes associated with the current context
             const associatedAttributes = attributes.filter(
@@ -269,7 +276,8 @@ const ContextsContent = ({
 
                   {/* Display Associated Attributes */}
                   <VStack align="flex-start" spacing={1} w="full" mt={2}>
-                    <Text fontSize="xs" fontWeight="semibold" color="gray.500" mt={2} pt={2} borderTopWidth="1px" borderColor={cardBorderColor}>Associated Attributes:</Text>
+                    <Text fontSize="xs" fontWeight="semibold" color="gray.500" mt={2} pt={2} borderTopWidth="1px"
+                          borderColor={cardBorderColor}>Associated Attributes:</Text>
                     {associatedAttributes.length > 0 ? (
                       <Flex wrap="wrap" gap={1}>
                         {associatedAttributes.map(attr => (
@@ -292,7 +300,7 @@ const ContextsContent = ({
                     )}
                   </VStack>
 
-                  <Spacer />
+                  <Spacer/>
 
                   <HStack
                     w="full"
@@ -304,20 +312,26 @@ const ContextsContent = ({
                     borderColor={cardBorderColor}
                   >
                     <Button
-                      leftIcon={<FaEdit />}
+                      leftIcon={<FaEdit/>}
                       size="sm"
                       colorScheme={buttonColorScheme}
                       variant="outline"
-                      onClick={(e) => { e.stopPropagation(); handleEditClick(context); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(context);
+                      }}
                     >
                       Edit
                     </Button>
                     <Button
-                      leftIcon={<FaTrashAlt />}
+                      leftIcon={<FaTrashAlt/>}
                       size="sm"
                       colorScheme="red"
                       variant="solid"
-                      onClick={(e) => { e.stopPropagation(); confirmDelete(context); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDelete(context);
+                      }}
                     >
                       Delete
                     </Button>
@@ -333,10 +347,10 @@ const ContextsContent = ({
 
       {/* Add/Edit Context Modal */}
       <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
+        <ModalOverlay/>
         <ModalContent>
           <ModalHeader>{isEditing ? 'Edit Context' : 'Add New Context'}</ModalHeader>
-          <ModalCloseButton />
+          <ModalCloseButton/>
           <ModalBody>
             <FormControl id="context-name" isRequired mb={4}>
               <FormLabel>Name</FormLabel>
@@ -348,10 +362,11 @@ const ContextsContent = ({
             </FormControl>
             <FormControl id="context-description" mb={4}>
               <FormLabel>Description</FormLabel>
-              <Input
+              <Textarea
                 placeholder="A brief description of this context"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
+                rows={4}
               />
             </FormControl>
           </ModalBody>
@@ -377,7 +392,8 @@ const ContextsContent = ({
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to delete context "<strong>{contextToDelete?.name}</strong>"? This action cannot be undone.
+              Are you sure you want to delete context "<strong>{contextToDelete?.name}</strong>"? This action cannot be
+              undone.
             </AlertDialogBody>
 
             <AlertDialogFooter>

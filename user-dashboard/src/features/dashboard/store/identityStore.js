@@ -22,12 +22,12 @@ export const useIdentityStore = create((set, get) => ({
   /**
    * Fetch identity data for the current user.
    *
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<void>}
    */
-  fetchIdentityData: async (userInfo) => {
+  fetchIdentityData: async (accessToken) => {
     set({isLoading: true, error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       set({error: "Authentication token missing. Cannot fetch identity data.", isLoading: false});
       return;
     }
@@ -52,12 +52,12 @@ export const useIdentityStore = create((set, get) => ({
    * Add a new context for the user.
    *
    * @param contextToSave - The context object to be added.
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<any>}
    */
-  addContext: async (contextToSave, userInfo) => {
+  addContext: async (contextToSave, accessToken) => {
     set({error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       const errorMessage = "Authentication token missing. Cannot add context.";
       set({error: errorMessage, isLoading: false});
       throw new Error(errorMessage);
@@ -83,12 +83,12 @@ export const useIdentityStore = create((set, get) => ({
    *
    * @param contextId - The ID of the context to be updated.
    * @param updatedContextData - The partial context object with updated fields.
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<any>}
    */
-  updateContext: async (contextId, updatedContextData, userInfo) => {
+  updateContext: async (contextId, updatedContextData, accessToken) => {
     set({error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       const errorMessage = "Authentication token missing. Cannot update context.";
       set({error: errorMessage, isLoading: false});
       throw new Error(errorMessage);
@@ -115,12 +115,12 @@ export const useIdentityStore = create((set, get) => ({
    * Delete a context for the user.
    *
    * @param contextId - The ID of the context to be deleted.
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<void>}
    */
-  deleteContext: async (contextId, userInfo) => {
+  deleteContext: async (contextId, accessToken) => {
     set({error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       const errorMessage = "Authentication token missing. Cannot delete context.";
       set({error: errorMessage, isLoading: false});
       throw new Error(errorMessage);
@@ -144,12 +144,12 @@ export const useIdentityStore = create((set, get) => ({
    * Add a new attribute for the user.
    *
    * @param attributeToSave - The attribute object to be added.
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<any>}
    */
-  addAttribute: async (attributeToSave, userInfo) => {
+  addAttribute: async (attributeToSave, accessToken) => {
     set({error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       const errorMessage = "Authentication token missing. Cannot add attribute.";
       set({error: errorMessage, isLoading: false});
       throw new Error(errorMessage);
@@ -175,12 +175,12 @@ export const useIdentityStore = create((set, get) => ({
    *
    * @param attributeId - The ID of the attribute to be updated.
    * @param updatedAttributeData - The partial attribute object with updated fields.
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<any>}
    */
-  updateAttribute: async (attributeId, updatedAttributeData, userInfo) => {
+  updateAttribute: async (attributeId, updatedAttributeData, accessToken) => {
     set({error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       const errorMessage = "Authentication token missing. Cannot update attribute.";
       set({error: errorMessage, isLoading: false});
       throw new Error(errorMessage);
@@ -207,12 +207,12 @@ export const useIdentityStore = create((set, get) => ({
    * Delete an attribute for the user.
    *
    * @param attributeId - The ID of the attribute to be deleted.
-   * @param userInfo - The user information containing the authentication token.
+   * @param accessToken - The access token for the authenticated user.
    * @returns {Promise<void>}
    */
-  deleteAttribute: async (attributeId, userInfo) => {
+  deleteAttribute: async (attributeId, accessToken) => {
     set({error: null, message: null});
-    if (!userInfo || !userInfo.token) {
+    if (!accessToken) {
       const errorMessage = "Authentication token missing. Cannot delete attribute.";
       set({error: errorMessage, isLoading: false});
       throw new Error(errorMessage);
@@ -233,12 +233,13 @@ export const useIdentityStore = create((set, get) => ({
   },
 
   /**
-   * Clear any messages in the store.
+   * Reset the identity store to its initial state.
    */
-  clearMessage: () => set({message: null}),
-
-  /**
-   * Clear any errors in the store.
-   */
-  clearError: () => set({error: null}),
+  reset: () => set({
+    contexts: [],
+    attributes: [],
+    message: null,
+    isLoading: false,
+    error: null,
+  }),
 }));

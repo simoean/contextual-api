@@ -3,20 +3,22 @@ package com.simoes.contextual.user;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for managing core user operations. This service provides methods to find and save User
  * entities, and acts as the gatekeeper for modifications to embedded user data like contexts and
  * attributes.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -65,6 +67,107 @@ public class UserService {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Provisions default contexts and attributes for a newly registered user. This method ensures
+   * that every new user starts with a predefined set of identity management tools.
+   *
+   * @param user The newly created User object.
+   */
+  @Transactional
+  public void provisionDefaultUserData(User user) {
+    String userId = user.getId();
+    if (userId == null) {
+      log.error("Cannot provision default data: User ID is null for user {}", user.getUsername());
+      throw new IllegalArgumentException("User ID cannot be null for provisioning default data.");
+    }
+
+    log.info("Provisioning default data for new user: {}", user.getUsername());
+
+    // Create OOTB Contexts
+    Context personalContext =
+        Context.builder()
+            .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
+            .name("Personal")
+            .description("Your personal identity details for everyday use.")
+            .build();
+
+    Context professionalContext =
+        Context.builder()
+            .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
+            .name("Professional")
+            .description("Identity details relevant to your professional life and career.")
+            .build();
+
+    Context academicContext =
+        Context.builder()
+            .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
+            .name("Academic")
+            .description("Identity details for educational institutions and academic pursuits.")
+            .build();
+
+    user.setContexts(Arrays.asList(personalContext, professionalContext, academicContext));
+
+    // Create OOTB Attributes
+    // Attributes will be private by default as they contain sensitive information
+    IdentityAttribute firstNameAttr =
+        IdentityAttribute.builder()
+            .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
+            .userId(userId)
+            .name("First Name")
+            .value("")
+            .visible(true)
+            .contextIds(new ArrayList<>())
+            .build();
+
+    IdentityAttribute lastNameAttr =
+        IdentityAttribute.builder()
+            .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
+            .userId(userId)
+            .name("Last Name")
+            .value("")
+            .visible(true)
+            .contextIds(new ArrayList<>())
+            .build();
+
+    IdentityAttribute emailAttr =
+        IdentityAttribute.builder()
+            .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
+            .userId(userId)
+            .name("Email")
+            .value("")
+            .visible(true)
+            .contextIds(new ArrayList<>())
+            .build();
+
+    user.setAttributes(Arrays.asList(firstNameAttr, lastNameAttr, emailAttr));
+
+    // Associate Attributes with Contexts
+    // Personal Context: FN, LN, Email
+    firstNameAttr.getContextIds().add(personalContext.getId());
+    lastNameAttr.getContextIds().add(personalContext.getId());
+    emailAttr.getContextIds().add(personalContext.getId());
+
+    // Professional Context: FN, LN
+    firstNameAttr.getContextIds().add(professionalContext.getId());
+    lastNameAttr.getContextIds().add(professionalContext.getId());
+
+    // Academic Context: FN, LN
+    firstNameAttr.getContextIds().add(academicContext.getId());
+    lastNameAttr.getContextIds().add(academicContext.getId());
+
+    // Ensure no duplicate context IDs in attribute's contextIds list
+    firstNameAttr.setContextIds(
+        firstNameAttr.getContextIds().stream().distinct().collect(Collectors.toList()));
+    lastNameAttr.setContextIds(
+        lastNameAttr.getContextIds().stream().distinct().collect(Collectors.toList()));
+    emailAttr.setContextIds(
+        emailAttr.getContextIds().stream().distinct().collect(Collectors.toList()));
+
+    // Save the user with populated contexts and attributes
+    userRepository.save(user);
+    log.info("Default contexts and attributes provisioned for user: {}", user.getUsername());
   }
 
   /**

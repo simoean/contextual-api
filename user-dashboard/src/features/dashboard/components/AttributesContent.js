@@ -37,31 +37,27 @@ import {
 } from '@chakra-ui/react';
 
 import {FaLock, FaEye, FaPlus, FaEdit, FaTrashAlt} from 'react-icons/fa';
+
 import {useIdentityStore} from 'features/dashboard/store/identityStore';
+import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 
 /**
  * AttributesContent Component
  * Displays a list of user attributes, optionally filtered by a selected context, and provides CRUD actions.
  *
  * @param {Array<Object>} attributes - Array of all attribute objects.
- * @param {Object|null} selectedContext - The currently selected context object, or null.
  * @param {Function} addAttribute - Function from the store to add a new attribute.
  * @param {Function} updateAttribute - Function from the store to update an existing attribute.
  * @param {Function} deleteAttribute - Function from the store to delete an attribute.
  * @param {Function} fetchIdentityData - Function to re-fetch data after actions.
- * @param {Object} userInfo - User information object (passed for consistency, not directly used here yet).
- * @param {Function} setUserInfo - Function to update user information (passed for consistency, not directly used here yet).
  * @param {Function} setCurrentPage - Function to set the current page in the dashboard (used for navigation).
  */
 const AttributesContent = ({
                              attributes,
-                             selectedContext,
                              addAttribute,
                              updateAttribute,
                              deleteAttribute,
                              fetchIdentityData,
-                             userInfo,
-                             setUserInfo,
                              setCurrentPage
                            }) => {
 
@@ -89,8 +85,22 @@ const AttributesContent = ({
   const cancelRef = useRef();
   const [attributeToDelete, setAttributeToDelete] = useState(null);
 
+  // Get the selectedContextId function from the Auth context
+  const {selectedContextId} = useAuthenticationStore();
+
   // Toast hook for displaying user notifications
   const toast = useToast();
+
+  /**
+   * Memoized value for the currently selected context.
+   */
+  const currentSelectedContext = useMemo(() => {
+    // Only try to find if selectedContextId exists and contexts array is available
+    if (selectedContextId && contexts && contexts.length > 0) {
+      return contexts.find(ctx => ctx.id === selectedContextId);
+    }
+    return null;
+  }, [selectedContextId, contexts]);
 
   /**
    * Memoized array of attributes to display.
@@ -99,17 +109,17 @@ const AttributesContent = ({
   const displayAttributes = useMemo(() => {
     if (!attributes) return [];
 
-    if (selectedContext) {
+    if (selectedContextId) {
       // When a context is selected, filter by association with that context
       return attributes.filter(attr =>
         Array.isArray(attr.contextIds) &&
-        attr.contextIds.includes(selectedContext.id)
+        attr.contextIds.includes(selectedContextId)
       );
     } else {
       // When no context is selected, show all attributes
       return attributes;
     }
-  }, [attributes, selectedContext]);
+  }, [attributes, selectedContextId]);
 
   /**
    * Resets form and opens modal for adding new attribute.
@@ -119,7 +129,7 @@ const AttributesContent = ({
     setCurrentAttribute(null);
     setFormName('');
     setFormValue('');
-    setFormContextIds(selectedContext ? [selectedContext.id] : []);
+    setFormContextIds(selectedContextId ? [selectedContextId] : []);
     setFormVisible(true);
     onOpen();
   };
@@ -235,7 +245,7 @@ const AttributesContent = ({
         </Button>
       </HStack>
       <Text fontSize="lg" color={textColor}>
-        {selectedContext ? (
+        {selectedContextId ? (
           <>
             Attributes for your{' '}"
             <Button
@@ -245,7 +255,7 @@ const AttributesContent = ({
               fontWeight="bold"
               fontSize="lg"
             >
-              {selectedContext.name}
+              {currentSelectedContext.name}
             </Button>
             "{' '}context:{' '}
           </>
@@ -346,8 +356,8 @@ const AttributesContent = ({
         </SimpleGrid>
       ) : (
         <Text color={textColor}>
-          {selectedContext
-            ? `No attributes found for your "${selectedContext.name}" context. Click "Add Attribute" to create one.`
+          {selectedContextId
+            ? `No attributes found for your "${currentSelectedContext.name}" context. Click "Add Attribute" to create one.`
             : 'No attributes found for your user. Click "Add Attribute" to create one.'}
         </Text>
       )}

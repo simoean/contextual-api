@@ -2,6 +2,7 @@ package com.simoes.contextual.context_attributes;
 
 import java.util.List;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -11,6 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
  * document, its ID is just a regular field.
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class IdentityAttribute {

@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import './assets/styles/global.css';
-import {AuthProvider} from 'features/auth/context/AuthContext';
 
 import { ChakraProvider } from '@chakra-ui/react';
 import theme from 'shared/theme/theme';
@@ -18,10 +17,8 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <ChakraProvider theme={theme}>
-      <AuthProvider>
-        {/* Main App component */}
-        <App/>
-      </AuthProvider>
+      {/* Main App component */}
+      <App/>
     </ChakraProvider>
   </React.StrictMode>
 );
