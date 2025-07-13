@@ -1,18 +1,35 @@
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
+import React from 'react';
 
-import {useAuth} from '../features/auth/context/AuthContext';
+import {Flex, Spinner, Text, useColorModeValue} from '@chakra-ui/react';
 
-import DashboardPage from '../features/dashboard/pages/DashboardPage';
+import {useAuth} from 'features/auth/context/AuthContext';
 
-import SignInPage from '../features/auth/pages/SignInPage';
-import ContextSelectionPage from '../features/auth/pages/ContextSelectionPage';
+import DashboardPage from 'features/dashboard/pages/DashboardPage';
+
+import SignInPage from 'features/auth/pages/SignInPage';
+import ContextSelectionPage from 'features/auth/pages/ContextSelectionPage';
 
 // Simple wrapper for private routes
 const PrivateRoute = ({children}) => {
   const {isAuthenticated, isLoading} = useAuth();
 
+  const bgColour = useColorModeValue('gray.50', 'gray.800');
+  const textColour = useColorModeValue('gray.800', 'white');
+
   if (isLoading) {
-    return <div>Loading authentication...</div>; // Or a spinner
+    return (
+      <Flex direction="column" align="center" justify="center" h="100vh" w="100vw" bg={bgColour}>
+        <Spinner
+          size="xl"
+          thickness="4px"
+          speed="0.65s"
+          emptyColor="gray.200"
+          color="brand.500"
+        />
+        <Text mt={4} fontSize="lg" color={textColour}>Loading authentication...</Text>
+      </Flex>
+    );
   }
 
   return isAuthenticated ? children : <Navigate to="/auth" replace/>;
@@ -26,16 +43,31 @@ const PrivateRoute = ({children}) => {
  * @constructor
  */
 const App = () => {
+  // Get the login function from your AuthContext.
+  // This function is responsible for updating the isAuthenticated and userInfo state in the context.
+  const {login: authLogin} = useAuth();
 
-  // If the user is not authenticated, redirect to sign in page, otherwise show the dashboard
+  /**
+   * Callback function passed to SignInPage upon successful login.
+   * It receives the authentication payload and delegates to the AuthContext's login function.
+   * @param {object} payloadData - The authentication data (token, user info, selected context/attributes).
+   */
+  const handleSignInSuccess = (payloadData) => {
+    console.log("App.js: handleSignInSuccess received authentication payload:", payloadData);
+    // Call the login function from AuthContext to update the global authentication state
+    authLogin(payloadData);
+    // React Router's PrivateRoute will automatically handle navigation to /dashboard
+    // once isAuthenticated becomes true in the AuthContext.
+  };
+
   return (
     <Router>
       <Routes>
-        {/* Public route for login */}
+        {/* Public route for authentication flows */}
         <Route path="/auth">
-          {/* Default nested route shows SignInPage */}
-          <Route index element={<SignInPage/>}/>
-          {/* Nested route for context selection after sign-in (within client flow) */}
+          {/* Default nested route shows SignInPage, passing the handleSignInSuccess callback */}
+          <Route index element={<SignInPage onLoginSuccess={handleSignInSuccess}/>}/>
+          {/* Nested route for context selection after sign-in (within the client flow) */}
           <Route path="context" element={<ContextSelectionPage/>}/>
         </Route>
 
@@ -54,12 +86,13 @@ const App = () => {
           path="/"
           element={
             <PrivateRoute>
+              {/* If authenticated, redirect to the dashboard; otherwise PrivateRoute will redirect to /auth */}
               <Navigate to="/dashboard" replace/>
             </PrivateRoute>
           }
         />
 
-        {/* Default route shows 404 page */}
+        {/* Catch-all route for unmatched paths */}
         <Route path="*" element={<div>404: Page Not Found</div>}/>
       </Routes>
     </Router>

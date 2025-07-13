@@ -38,7 +38,8 @@ export const useIdentityStore = create((set, get) => ({
         contexts: contextsResponse.data,
         attributes: attributesResponse.data,
         isLoading: false,
-        message: "Identity data loaded successfully!"
+        message: "Identity data loaded successfully!",
+        error: null,
       });
     } catch (err) {
       console.error("Failed to fetch identity data:", err);
@@ -57,19 +58,22 @@ export const useIdentityStore = create((set, get) => ({
   addContext: async (contextToSave, userInfo) => {
     set({error: null, message: null});
     if (!userInfo || !userInfo.token) {
-      set({error: "Authentication token missing.", isLoading: false});
-      return;
+      const errorMessage = "Authentication token missing. Cannot add context.";
+      set({error: errorMessage, isLoading: false});
+      throw new Error(errorMessage);
     }
     try {
       const response = await axiosInstance.post('/users/me/contexts', contextToSave);
       set((state) => ({
         contexts: [...state.contexts, response.data],
-        message: `Context "${contextToSave.name}" added successfully!`
+        message: `Context "${contextToSave.name}" added successfully!`,
+        error: null,
+        isLoading: false,
       }));
       return response.data;
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || `Failed to add context "${contextToSave.name}".`;
-      set({error: errorMessage});
+      set({error: errorMessage, isLoading: false});
       throw err;
     }
   },
@@ -77,28 +81,32 @@ export const useIdentityStore = create((set, get) => ({
   /**
    * Update an existing context for the user.
    *
-   * @param contextToSave - The context object to be updated.
+   * @param contextId - The ID of the context to be updated.
+   * @param updatedContextData - The partial context object with updated fields.
    * @param userInfo - The user information containing the authentication token.
    * @returns {Promise<any>}
    */
-  updateContext: async (contextToSave, userInfo) => {
+  updateContext: async (contextId, updatedContextData, userInfo) => {
     set({error: null, message: null});
     if (!userInfo || !userInfo.token) {
-      set({error: "Authentication token missing.", isLoading: false});
-      return;
+      const errorMessage = "Authentication token missing. Cannot update context.";
+      set({error: errorMessage, isLoading: false});
+      throw new Error(errorMessage);
     }
     try {
-      const response = await axiosInstance.put(`/users/me/contexts/${contextToSave.id}`, contextToSave);
+      const response = await axiosInstance.put(`/users/me/contexts/${contextId}`, updatedContextData);
       set((state) => ({
         contexts: state.contexts.map((c) =>
-          c.id === contextToSave.id ? response.data : c
+          c.id === contextId ? response.data : c
         ),
-        message: `Context "${contextToSave.name}" updated successfully!`
+        message: `Context "${updatedContextData.name || contextId}" updated successfully!`,
+        error: null,
+        isLoading: false,
       }));
       return response.data;
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || `Failed to update context "${contextToSave.name}".`;
-      set({error: errorMessage});
+      const errorMessage = err.response?.data?.message || err.message || `Failed to update context "${contextId}".`;
+      set({error: errorMessage, isLoading: false});
       throw err;
     }
   },
@@ -113,19 +121,21 @@ export const useIdentityStore = create((set, get) => ({
   deleteContext: async (contextId, userInfo) => {
     set({error: null, message: null});
     if (!userInfo || !userInfo.token) {
-      set({error: "Authentication token missing.", isLoading: false});
-      return;
+      const errorMessage = "Authentication token missing. Cannot delete context.";
+      set({error: errorMessage, isLoading: false});
+      throw new Error(errorMessage);
     }
-    if (!window.confirm("Are you sure you want to delete this context?")) return; // Moved confirmation
     try {
       await axiosInstance.delete(`/users/me/contexts/${contextId}`);
       set((state) => ({
         contexts: state.contexts.filter((c) => c.id !== contextId),
-        message: "Context deleted successfully!"
+        message: "Context deleted successfully!",
+        error: null,
+        isLoading: false,
       }));
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || "Failed to delete context.";
-      set({error: errorMessage});
+      set({error: errorMessage, isLoading: false});
       throw err;
     }
   },
@@ -140,19 +150,22 @@ export const useIdentityStore = create((set, get) => ({
   addAttribute: async (attributeToSave, userInfo) => {
     set({error: null, message: null});
     if (!userInfo || !userInfo.token) {
-      set({error: "Authentication token missing.", isLoading: false});
-      return;
+      const errorMessage = "Authentication token missing. Cannot add attribute.";
+      set({error: errorMessage, isLoading: false});
+      throw new Error(errorMessage);
     }
     try {
       const response = await axiosInstance.post('/users/me/attributes', attributeToSave);
       set((state) => ({
         attributes: [...state.attributes, response.data],
-        message: `Attribute "${attributeToSave.name}" added successfully!`
+        message: `Attribute "${attributeToSave.name}" added successfully!`,
+        error: null,
+        isLoading: false,
       }));
       return response.data;
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || `Failed to add attribute "${attributeToSave.name}".`;
-      set({error: errorMessage});
+      set({error: errorMessage, isLoading: false});
       throw err;
     }
   },
@@ -160,28 +173,32 @@ export const useIdentityStore = create((set, get) => ({
   /**
    * Update an existing attribute for the user.
    *
-   * @param attributeToSave - The attribute object to be updated.
+   * @param attributeId - The ID of the attribute to be updated.
+   * @param updatedAttributeData - The partial attribute object with updated fields.
    * @param userInfo - The user information containing the authentication token.
    * @returns {Promise<any>}
    */
-  updateAttribute: async (attributeToSave, userInfo) => {
+  updateAttribute: async (attributeId, updatedAttributeData, userInfo) => {
     set({error: null, message: null});
     if (!userInfo || !userInfo.token) {
-      set({error: "Authentication token missing.", isLoading: false});
-      return;
+      const errorMessage = "Authentication token missing. Cannot update attribute.";
+      set({error: errorMessage, isLoading: false});
+      throw new Error(errorMessage);
     }
     try {
-      const response = await axiosInstance.put(`/users/me/attributes/${attributeToSave.id}`, attributeToSave);
+      const response = await axiosInstance.put(`/users/me/attributes/${attributeId}`, updatedAttributeData);
       set((state) => ({
         attributes: state.attributes.map((a) =>
-          a.id === attributeToSave.id ? response.data : a
+          a.id === attributeId ? response.data : a
         ),
-        message: `Attribute "${attributeToSave.name}" updated successfully!`
+        message: `Attribute "${updatedAttributeData.name || attributeId}" updated successfully!`,
+        error: null,
+        isLoading: false,
       }));
       return response.data;
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || `Failed to update attribute "${attributeToSave.name}".`;
-      set({error: errorMessage});
+      const errorMessage = err.response?.data?.message || err.message || `Failed to update attribute "${attributeId}".`;
+      set({error: errorMessage, isLoading: false});
       throw err;
     }
   },
@@ -196,19 +213,21 @@ export const useIdentityStore = create((set, get) => ({
   deleteAttribute: async (attributeId, userInfo) => {
     set({error: null, message: null});
     if (!userInfo || !userInfo.token) {
-      set({error: "Authentication token missing.", isLoading: false});
-      return;
+      const errorMessage = "Authentication token missing. Cannot delete attribute.";
+      set({error: errorMessage, isLoading: false});
+      throw new Error(errorMessage);
     }
-    if (!window.confirm("Are you sure you want to delete this attribute?")) return;
     try {
       await axiosInstance.delete(`/users/me/attributes/${attributeId}`);
       set((state) => ({
         attributes: state.attributes.filter((a) => a.id !== attributeId),
-        message: "Attribute deleted successfully!"
+        message: "Attribute deleted successfully!",
+        error: null,
+        isLoading: false,
       }));
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || "Failed to delete attribute.";
-      set({error: errorMessage});
+      set({error: errorMessage, isLoading: false});
       throw err;
     }
   },

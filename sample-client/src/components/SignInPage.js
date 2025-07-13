@@ -1,5 +1,4 @@
 import React, {useState} from 'react';
-import axios from 'axios';
 
 /**
  * SignInPage Component
@@ -79,7 +78,7 @@ const SignInPage = ({onLoginSuccess}) => {
   };
 
   // Handle direct login (mock implementation)
-  const handleDirectLogin = async (event) => {
+  const handleDirectLogin = async () => {
     alert("Mock Direct Login: This would send a sign in request to the client!");
   };
 

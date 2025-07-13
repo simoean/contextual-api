@@ -9,7 +9,7 @@ export const AuthProvider = ({children}) => {
 
   // State to manage authentication status, user info, and loading state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
+  const [userInfo, setUserInfo] = useState(null); // This is the setter we need to expose
   const [isLoading, setIsLoading] = useState(true);
 
   // Effect to load user info from sessionStorage on initial mount
@@ -74,7 +74,8 @@ export const AuthProvider = ({children}) => {
     isLoading,
     handleLoginSuccess,
     handleLogout,
-  }), [isAuthenticated, userInfo, isLoading, handleLoginSuccess, handleLogout]);
+    setUserInfo,
+  }), [isAuthenticated, userInfo, isLoading, handleLoginSuccess, handleLogout, setUserInfo]);
 
   return (
     <AuthContext.Provider value={authContextValue}>
