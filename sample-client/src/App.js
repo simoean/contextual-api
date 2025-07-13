@@ -72,7 +72,7 @@ function App() {
                     // Use a more robust key like id or a combination of id and name
                     <li key={attr.id || `${attr.name}-${attr.value}`}>
                       <strong>{attr.name}:</strong> {attr.value}
-                      {attr.public ? ' (Public)' : ' (Private)'}
+                      {attr.visible ? ' (Public)' : ' (Private)'}
                     </li>
                   ))}
                 </ul>
