@@ -1,9 +1,8 @@
-import {create} from 'zustand';
-import {persist, createJSONStorage} from 'zustand/middleware';
-import {loginUser, registerUser} from 'shared/api/authService';
-import {setGlobalLogoutHandler} from 'shared/api/axiosConfig';
-
-import {useIdentityStore} from 'features/dashboard/store/identityStore';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { loginUser, registerUser } from 'shared/api/authService';
+import { setGlobalLogoutHandler } from 'shared/api/axiosConfig';
+import { useIdentityStore } from 'features/dashboard/store/identityStore';
 
 let _set;
 
@@ -14,10 +13,9 @@ let _set;
 export const useAuthenticationStore = create(
   persist(
     (set, get) => {
-      _set = set; // <-- Capture it here to be used in `onRehydrateStorage`
+      _set = set;
 
       return {
-
         // Initial state
         isAuthenticated: false,
         accessToken: null,
@@ -34,8 +32,8 @@ export const useAuthenticationStore = create(
          * Initialize authentication state from localStorage.
          */
         initializeAuth: () => {
-          const token = localStorage.getItem('dashboardJwtToken');
-          const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+          const token = sessionStorage.getItem('dashboardJwtToken');
+          const userInfo = JSON.parse(sessionStorage.getItem('userInfo'));
           if (token) {
             set({
               isAuthenticated: true,
@@ -66,12 +64,20 @@ export const useAuthenticationStore = create(
 
             sessionStorage.setItem('dashboardUsername', data.username);
             sessionStorage.setItem('dashboardUserId', data.userId);
-            sessionStorage.setItem('dashboardUserInfo', JSON.stringify({ userId: data.userId, username: data.username }));
+            sessionStorage.setItem(
+              'dashboardUserInfo',
+              JSON.stringify({ userId: data.userId, username: data.username })
+            );
             sessionStorage.setItem('dashboardJwtToken', data.token);
 
             return data;
           } catch (error) {
-            set({ isAuthenticated: false, userInfo: null, accessToken: null, refreshToken: null });
+            set({
+              isAuthenticated: false,
+              userInfo: null,
+              accessToken: null,
+              refreshToken: null,
+            });
             throw error;
           } finally {
             set({ isLoading: false });
@@ -96,7 +102,12 @@ export const useAuthenticationStore = create(
             });
             return response;
           } catch (error) {
-            set({ isAuthenticated: false, userInfo: null, accessToken: null, refreshToken: null });
+            set({
+              isAuthenticated: false,
+              userInfo: null,
+              accessToken: null,
+              refreshToken: null,
+            });
             throw error;
           } finally {
             set({ isLoading: false });

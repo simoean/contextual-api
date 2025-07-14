@@ -85,9 +85,9 @@ const ContextSelectionPage = () => {
   useEffect(() => {
     if (!authLoading && isAuthenticated && accessToken && contexts.length === 0 && attributes.length === 0) {
       console.log("ContextSelectionPage: Fetching identity data.");
-      fetchIdentityData(userInfo);
+      fetchIdentityData(accessToken);
     }
-  }, [userInfo, isAuthenticated, authLoading, fetchIdentityData, contexts.length, attributes.length]);
+  }, [accessToken, isAuthenticated, authLoading, fetchIdentityData, contexts.length, attributes.length]);
 
   /**
    * Handle Authentication Status
