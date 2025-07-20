@@ -76,7 +76,6 @@ const DashboardPage = () => {
     // Only attempt to fetch if authentication is not loading, user is authenticated, and a token exists.
     if (!authLoading && isAuthenticated && accessToken) {
       if (contexts.length === 0 || attributes.length === 0 || storeError) {
-        console.log("DashboardPage: Triggering identity data fetch.");
         fetchIdentityData(accessToken);
       }
     }
@@ -228,6 +227,7 @@ const DashboardPage = () => {
           <IconButton
             aria-label="Sign Out"
             icon={<FaSignOutAlt />}
+            data-testid="sign-out-button"
             onClick={logout}
             size="md"
             isRound={true}
@@ -273,6 +273,7 @@ const DashboardPage = () => {
           {navItems.map((item) => (
             <Button
               key={item.id}
+              data-testid={`nav-${item.id}`}
               variant="ghost"
               onClick={() => setCurrentPage(item.id)}
               w="full"

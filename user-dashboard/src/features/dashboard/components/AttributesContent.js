@@ -239,7 +239,7 @@ const AttributesContent = ({
   return (
     <VStack align="flex-start" spacing={6} w="full">
       <HStack justifyContent="space-between" w="full">
-        <Heading as="h2" size="xl" color={headingColor}>Your Attributes</Heading>
+        <Heading data-testid="attribute-heading" as="h2" size="xl" color={headingColor}>Your Attributes</Heading>
         <Button leftIcon={<FaPlus/>} colorScheme={buttonColorScheme} onClick={handleAddClick}>
           Add Attribute
         </Button>

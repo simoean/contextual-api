@@ -1,5 +1,5 @@
-import { useLocation } from 'react-router-dom';
-import { useMemo } from 'react';
+import {useLocation} from 'react-router-dom';
+import {useMemo} from 'react';
 
 /**
  * Custom hook to extract authentication parameters from the URL query string.
@@ -20,7 +20,7 @@ const useAuthParams = () => {
   // A convenient flag to check if we are in a client-initiated flow
   const isClientFlow = !!clientId && !!redirectUri;
 
-  return { clientId, redirectUri, isClientFlow };
+  return {clientId, redirectUri, isClientFlow};
 };
 
 export default useAuthParams;

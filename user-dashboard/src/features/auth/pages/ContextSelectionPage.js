@@ -120,13 +120,13 @@ const ContextSelectionPage = () => {
   useEffect(() => {
     if (selectedContextId) {
       const initialSelected = filteredAttributes.map(attr => attr.id);
-      const currentSelectedAttributeIds = useAuthenticationStore.getState().selectedAttributeIds;
+      const currentSelectedAttributeIds = selectedAttributeIds;
 
       if (JSON.stringify(initialSelected.sort()) !== JSON.stringify(currentSelectedAttributeIds.sort())) {
         setSelectedAttributeIds(initialSelected);
       }
     } else {
-      const currentSelectedAttributeIds = useAuthenticationStore.getState().selectedAttributeIds;
+      const currentSelectedAttributeIds = selectedAttributeIds;
       if (currentSelectedAttributeIds.length > 0) {
         setSelectedAttributeIds([]);
       }
@@ -308,6 +308,7 @@ const ContextSelectionPage = () => {
             >
               {contexts.map((context) => (
                 <Button
+                  data-testid={`context-button-${context.id}`}
                   key={context.id}
                   variant={selectedContextId === context.id ? 'selectedContext' : 'unselectedContext'}
                   onClick={() => handleContextButtonClick(context.id)}
@@ -331,7 +332,7 @@ const ContextSelectionPage = () => {
 
         {selectedContext && (
           <VStack align="stretch" spacing={4} width="100%" mt={6}>
-            <Heading as="h3" size="md">Attributes for "{selectedContext.name}" Context:</Heading>
+            <Heading data-testid="attributes-heading" as="h3" size="md">Attributes for "{selectedContext.name}" Context:</Heading>
             <Text fontSize="sm" variant="subtitle">
               Select attributes to share with the client application:
             </Text>
@@ -349,6 +350,7 @@ const ContextSelectionPage = () => {
                       <Text>{attr.value}</Text>
                     </Box>
                     <Checkbox
+                      data-testid={`share-checkbox-${attr.id}`}
                       isChecked={selectedAttributeIds.includes(attr.id)}
                       onChange={() => handleShareCheckboxChange(attr.id)}
                       colorScheme="brand"
@@ -375,6 +377,7 @@ const ContextSelectionPage = () => {
         spacing={4}
       >
         <Button
+          data-testid="cancel-button"
           onClick={handleCancel}
           variant="solid"
           colorScheme="gray"
@@ -384,6 +387,7 @@ const ContextSelectionPage = () => {
           Cancel
         </Button>
         <Button
+          data-testid="confirm-selection-button"
           onClick={handleConfirmSelection}
           disabled={!selectedContextId || dataLoading}
           colorScheme="brand"

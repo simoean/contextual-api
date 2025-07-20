@@ -180,6 +180,7 @@ const ContextsContent = ({
       if (userInfo?.selectedContext?.id === contextToDelete.id) {
         setUserInfo(prev => ({...prev, selectedContext: null}));
       }
+      setSelectedContextId(null);
       toast({
         title: "Context deleted.",
         description: `Context "${contextToDelete.name}" has been deleted.`,
@@ -228,8 +229,9 @@ const ContextsContent = ({
   return (
     <VStack align="flex-start" spacing={6} w="full">
       <HStack justifyContent="space-between" w="full">
-        <Heading as="h2" size="xl" color={headingColor}>Your Contexts</Heading>
-        <Button leftIcon={<FaPlus/>} colorScheme={buttonColorScheme} onClick={handleAddClick}>
+        <Heading data-testid="context-heading" as="h2" size="xl" color={headingColor}>Your Contexts</Heading>
+        <Button data-testid="add-context-button" leftIcon={<FaPlus/>} colorScheme={buttonColorScheme}
+                onClick={handleAddClick}>
           Add Context
         </Button>
       </HStack>
@@ -252,6 +254,7 @@ const ContextsContent = ({
               <Box
                 key={context.id}
                 p={5}
+                data-testid={`context-card-${context.id}`}
                 borderWidth={isSelected ? "2px" : "1px"}
                 borderRadius="lg"
                 boxShadow={isSelected ? selectedCardShadow : "sm"}
@@ -314,6 +317,7 @@ const ContextsContent = ({
                     <Button
                       leftIcon={<FaEdit/>}
                       size="sm"
+                      data-testid={`edit-context-button-${context.id}`}
                       colorScheme={buttonColorScheme}
                       variant="outline"
                       onClick={(e) => {
@@ -326,6 +330,7 @@ const ContextsContent = ({
                     <Button
                       leftIcon={<FaTrashAlt/>}
                       size="sm"
+                      data-testid={`delete-context-button-${context.id}`}
                       colorScheme="red"
                       variant="solid"
                       onClick={(e) => {
@@ -346,7 +351,7 @@ const ContextsContent = ({
       )}
 
       {/* Add/Edit Context Modal */}
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal data-testid="edit-create-modal" isOpen={isOpen} onClose={onClose}>
         <ModalOverlay/>
         <ModalContent>
           <ModalHeader>{isEditing ? 'Edit Context' : 'Add New Context'}</ModalHeader>
@@ -371,8 +376,8 @@ const ContextsContent = ({
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" onClick={onClose} mr={3}>Cancel</Button>
-            <Button colorScheme={buttonColorScheme} onClick={handleSubmit}>
+            <Button data-testid="cancel-edit-create" variant="ghost" onClick={onClose} mr={3}>Cancel</Button>
+            <Button data-testid="edit-create-context" colorScheme={buttonColorScheme} onClick={handleSubmit}>
               {isEditing ? 'Update Context' : 'Create Context'}
             </Button>
           </ModalFooter>
@@ -397,10 +402,10 @@ const ContextsContent = ({
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteAlertClose}>
+              <Button data-testid="cancel-delete" ref={cancelRef} onClick={onDeleteAlertClose}>
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={handleDeleteConfirmed} ml={3}>
+              <Button data-testid="confirm-delete" colorScheme="red" onClick={handleDeleteConfirmed} ml={3}>
                 Delete
               </Button>
             </AlertDialogFooter>

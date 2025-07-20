@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from 'react';
+import React, {useState, useMemo, useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 
 import {
@@ -23,7 +23,7 @@ import {MoonIcon, SunIcon} from '@chakra-ui/icons';
 import logo from 'assets/images/logo.png';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
-import {useAuthParams} from 'shared/hooks';
+import useAuthParams from 'shared/hooks/useAuthParams';
 
 /**
  * SignInPage Component
@@ -48,7 +48,7 @@ const SignInPage = () => {
   const {clientId, redirectUri, isClientFlow} = useAuthParams();
 
   // Get the login and register functions from the AuthContext
-  const {login} = useAuthenticationStore();
+  const {login, isAuthenticated} = useAuthenticationStore();
 
   // Color mode and styling
   const {colorMode, toggleColorMode} = useColorMode();
@@ -56,6 +56,28 @@ const SignInPage = () => {
   const cardBorderColor = useColorModeValue('gray.200', 'gray.600');
   const isDashboardDirectAccess = useMemo(() => !isClientFlow, [isClientFlow]);
 
+  /**
+   * Effect to check if the user is already authenticated
+   */
+  useEffect(() => {
+    // If user is already authenticated, redirect them
+    if (isAuthenticated) {
+      // Determine redirection based on isClientFlow, similar to successful login
+      if (isClientFlow) {
+        navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [isAuthenticated, navigate, isClientFlow, clientId, redirectUri]);
+
+  /**
+   * Handles the sign-in process
+   * This function is triggered when the user submits the login form.
+   *
+   * @param e - The event object from the form submission
+   * @returns {Promise<void>}
+   */
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -94,6 +116,10 @@ const SignInPage = () => {
     }
   };
 
+  /**
+   * Handles the cancel action
+   * This function is triggered when the user clicks the Cancel button.
+   */
   const handleCancel = () => {
     if (isClientFlow) {
       if (window.opener && !window.opener.closed) {
@@ -107,10 +133,15 @@ const SignInPage = () => {
     }
   };
 
+  /**
+   * Handles the sign-up action
+   * This function is triggered when the user clicks the Sign Up button.
+   */
   const handleSignUpClick = () => {
     navigate('/auth/signup');
   };
 
+  // Render the SignInPage component
   return (
     <Container centerContent minH="100vh" minW="100vw" variant="fullPageBackground" py={12}>
       <Stack spacing={8} mx={'auto'} maxW={'lg'} w={'90%'} py={12} px={6} bg={cardBg}

@@ -158,6 +158,7 @@ const SignUpPage = () => {
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
+                  data-testid="password-input"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -179,6 +180,7 @@ const SignUpPage = () => {
                 <Input
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm your password"
+                  data-testid="confirm-password-input"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
