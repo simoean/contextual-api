@@ -215,7 +215,7 @@ MongoDB document (which is a standard field for nested objects, not MongoDB's sp
 in our Java `IdentityAttribute` and `Context` objects. This was critical for correctly retrieving these IDs from
 the database.
 
-* **Frontend Selective Sharing Logic (`ContextSelectionPage.js`):**
+* **Frontend Selective Sharing Logic (`ContextSelectionPage.jsx`):**
 
     ```javascript
     // ...
