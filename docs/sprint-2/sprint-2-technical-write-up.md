@@ -2,8 +2,8 @@
 
 * **Project:** Contextual Identity API
 * **Developer:** Antonio Simoes
-* **Sprint Period:** Week 11 - Week 12
-* **Date:** 28.06.2025
+* **Sprint Period:** Week 13 - Week 14
+* **Date:** 09.07.2025
 
 ---
 
