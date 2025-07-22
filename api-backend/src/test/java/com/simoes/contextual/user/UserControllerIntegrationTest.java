@@ -37,9 +37,7 @@ class UserControllerIntegrationTest {
   // Injects UserRepository to setup and teardown test data in the embedded MongoDB
   @Autowired private UserRepository userRepository;
 
-  // ObjectMapper for converting objects to/from JSON
-  @Autowired private ObjectMapper objectMapper;
-
+  // Test user instance used across tests
   private User testUser;
 
   @BeforeEach
@@ -75,8 +73,8 @@ class UserControllerIntegrationTest {
     testUser =
         new User(
             "user123",
-            "john.doe.int", // Use a distinct username for integration tests
-            "password", // Passwords must match those in CustomUserDetailsService/SecurityConfig
+            "john.doe.int",
+            "password",
             // (NoOpPasswordEncoder)
             "john.int@example.com",
             Collections.singletonList("ROLE_USER"),

@@ -2,6 +2,7 @@ package com.simoes.contextual.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**
@@ -9,6 +10,7 @@ import lombok.Data;
  * the data sent by the client when attempting to register a new user.
  */
 @Data
+@AllArgsConstructor
 public class RegisterRequest {
   @NotBlank(message = "Username cannot be empty")
   private String username;

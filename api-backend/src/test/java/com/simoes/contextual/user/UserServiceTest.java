@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,6 +32,7 @@ class UserServiceTest {
   // Injects the mocks into UserService
   @InjectMocks private UserService userService;
 
+  // Test data for user, contexts, and attributes
   private User testUser;
   private Context testContextPersonal;
   private Context testContextProfessional;
@@ -161,7 +161,8 @@ class UserServiceTest {
   void Given_UserExists_When_DeleteUser_Then_ReturnsTrueAndDeletesUser() {
     // Given: UserRepository indicates the user exists
     when(userRepository.existsById(testUser.getId())).thenReturn(true);
-    // When userRepository.deleteById is called, it returns void, so no specific mock needed beyond existsById
+    // When userRepository.deleteById is called, it returns void, so no specific mock needed beyond
+    // existsById
 
     // When: UserService's deleteUser is called
     boolean deleted = userService.deleteUser(testUser.getId());
@@ -193,7 +194,7 @@ class UserServiceTest {
     verify(userRepository, never()).deleteById(anyString());
   }
 
-  @Nested // NEW: Nested class for Context CRUD Operations
+  @Nested
   @DisplayName("Context CRUD Operations")
   class ContextCrudOperations {
 
@@ -316,7 +317,7 @@ class UserServiceTest {
     }
   }
 
-  @Nested // NEW: Nested class for Attribute CRUD Operations
+  @Nested
   @DisplayName("Attribute CRUD Operations")
   class AttributeCrudOperations {
 
@@ -434,6 +435,157 @@ class UserServiceTest {
       assertFalse(deleted);
 
       // Verify that save was NOT called
+      verify(userRepository, never()).save(any(User.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Provisioning Operations")
+  class ProvisioningOperations {
+
+    private User newUser;
+
+    @BeforeEach
+    void setupProvisioning() {
+      // A new user without contexts or attributes, as it would be before provisioning
+      newUser =
+          new User(
+              "newUser123",
+              "new.user",
+              "newpass",
+              "new@example.com",
+              Collections.singletonList("ROLE_USER"),
+              new ArrayList<>(),
+              new ArrayList<>());
+    }
+
+    @Test
+    @DisplayName("Should provision default contexts and attributes for a new user")
+    void Given_NewUser_When_ProvisionDefaultUserData_Then_ContextsAndAttributesAreSet() {
+      // Given: The userRepository will save the user after provisioning
+      when(userRepository.save(any(User.class))).thenReturn(newUser);
+
+      // When: provisionDefaultUserData is called
+      userService.provisionDefaultUserData(newUser);
+
+      // Then:
+      // 1. User's contexts should not be empty and contain the expected default contexts
+      assertFalse(newUser.getContexts().isEmpty());
+      assertEquals(3, newUser.getContexts().size());
+      assertTrue(
+          newUser.getContexts().stream()
+              .anyMatch(ctx -> ctx.getName().equals("Personal") && ctx.getId().startsWith("ctx-")));
+      assertTrue(
+          newUser.getContexts().stream()
+              .anyMatch(
+                  ctx -> ctx.getName().equals("Professional") && ctx.getId().startsWith("ctx-")));
+      assertTrue(
+          newUser.getContexts().stream()
+              .anyMatch(ctx -> ctx.getName().equals("Academic") && ctx.getId().startsWith("ctx-")));
+
+      // 2. User's attributes should not be empty and contain the expected default attributes
+      assertFalse(newUser.getAttributes().isEmpty());
+      assertEquals(3, newUser.getAttributes().size());
+      assertTrue(
+          newUser.getAttributes().stream()
+              .anyMatch(
+                  attr ->
+                      attr.getName().equals("First Name")
+                          && attr.getId().startsWith("attr-")
+                          && attr.getUserId().equals(newUser.getId())));
+      assertTrue(
+          newUser.getAttributes().stream()
+              .anyMatch(
+                  attr ->
+                      attr.getName().equals("Last Name")
+                          && attr.getId().startsWith("attr-")
+                          && attr.getUserId().equals(newUser.getId())));
+      assertTrue(
+          newUser.getAttributes().stream()
+              .anyMatch(
+                  attr ->
+                      attr.getName().equals("Email")
+                          && attr.getId().startsWith("attr-")
+                          && attr.getUserId().equals(newUser.getId())));
+
+      // 3. Attributes should be correctly associated with contexts
+      IdentityAttribute firstNameAttr =
+          newUser.getAttributes().stream()
+              .filter(attr -> attr.getName().equals("First Name"))
+              .findFirst()
+              .orElseThrow();
+      IdentityAttribute lastNameAttr =
+          newUser.getAttributes().stream()
+              .filter(attr -> attr.getName().equals("Last Name"))
+              .findFirst()
+              .orElseThrow();
+      IdentityAttribute emailAttr =
+          newUser.getAttributes().stream()
+              .filter(attr -> attr.getName().equals("Email"))
+              .findFirst()
+              .orElseThrow();
+
+      // Find the generated context IDs
+      String personalCtxId =
+          newUser.getContexts().stream()
+              .filter(ctx -> ctx.getName().equals("Personal"))
+              .findFirst()
+              .orElseThrow()
+              .getId();
+      String professionalCtxId =
+          newUser.getContexts().stream()
+              .filter(ctx -> ctx.getName().equals("Professional"))
+              .findFirst()
+              .orElseThrow()
+              .getId();
+      String academicCtxId =
+          newUser.getContexts().stream()
+              .filter(ctx -> ctx.getName().equals("Academic"))
+              .findFirst()
+              .orElseThrow()
+              .getId();
+
+      assertTrue(firstNameAttr.getContextIds().contains(personalCtxId));
+      assertTrue(firstNameAttr.getContextIds().contains(professionalCtxId));
+      assertTrue(firstNameAttr.getContextIds().contains(academicCtxId));
+      assertEquals(3, firstNameAttr.getContextIds().size());
+
+      assertTrue(lastNameAttr.getContextIds().contains(personalCtxId));
+      assertTrue(lastNameAttr.getContextIds().contains(professionalCtxId));
+      assertTrue(lastNameAttr.getContextIds().contains(academicCtxId));
+      assertEquals(3, lastNameAttr.getContextIds().size());
+
+      assertTrue(emailAttr.getContextIds().contains(personalCtxId));
+      assertFalse(emailAttr.getContextIds().contains(professionalCtxId));
+      assertFalse(emailAttr.getContextIds().contains(academicCtxId));
+      assertEquals(1, emailAttr.getContextIds().size());
+
+      // 4. userRepository.save should be called exactly once with the modified user object
+      verify(userRepository, times(1)).save(newUser);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException if user ID is null during provisioning")
+    void
+        Given_NewUserWithNullId_When_ProvisionDefaultUserData_Then_ThrowsIllegalArgumentException() {
+      // Given: A new user with a null ID
+      User userWithNullId =
+          new User(
+              null,
+              "invalid.user",
+              "pass",
+              "invalid@example.com",
+              Collections.singletonList("ROLE_USER"),
+              new ArrayList<>(),
+              new ArrayList<>());
+
+      // When/Then: Calling provisionDefaultUserData should throw IllegalArgumentException
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> userService.provisionDefaultUserData(userWithNullId),
+          "User ID cannot be null for provisioning default data.");
+
+      // Verify that userRepository.save was NOT called
       verify(userRepository, never()).save(any(User.class));
     }
   }
