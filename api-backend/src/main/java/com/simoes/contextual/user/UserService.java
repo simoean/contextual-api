@@ -1,12 +1,10 @@
 package com.simoes.contextual.user;
 
+import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -245,7 +243,7 @@ public class UserService {
                       attr -> {
                         List<String> contextIds = attr.getContextIds();
                         if (contextIds != null && contextIds.contains(contextId)) {
-                          contextIds = new ArrayList<>(contextIds); // make mutable copy
+                          contextIds = new ArrayList<>(contextIds);
                           contextIds.remove(contextId);
                           attr.setContextIds(contextIds);
                         }
@@ -357,5 +355,122 @@ public class UserService {
               return true;
             })
         .orElse(false);
+  }
+
+  /**
+   * Records or updates a user's consent for a specific client application. If a consent record for
+   * the client already exists, it updates the shared attributes and timestamps. If not, a new
+   * consent record is created.
+   *
+   * @param userId The ID of the user.
+   * @param newConsent The consent containing the client ID and shared attributes.
+   * @return An Optional containing the updated User if successful, or empty if the user is not
+   *     found.
+   */
+  public Optional<User> recordConsent(String userId, Consent newConsent) {
+    return userRepository
+        .findById(userId)
+        .map(
+            user -> {
+              List<Consent> consents = user.getConsents();
+              if (consents == null) {
+                consents = Collections.emptyList();
+                user.setConsents(consents);
+              }
+
+              Optional<Consent> existingConsent =
+                  consents.stream()
+                      .filter(c -> c.getClientId().equals(newConsent.getClientId()))
+                      .findFirst();
+
+              if (existingConsent.isPresent()) {
+                Consent consent = existingConsent.get();
+                consent.setSharedAttributes(newConsent.getSharedAttributes());
+                consent.getTimestamps().add(new Date());
+              } else {
+                consents.add(
+                    newConsent
+                        .withId("cons-" + UUID.randomUUID().toString().substring(0, 8))
+                        .withTimestamps(Collections.singletonList(new Date())));
+              }
+              return userRepository.save(user);
+            });
+  }
+
+  /**
+   * Deletes a consent by its ID for a user.
+   *
+   * @param userId The ID of the user whose consent is to be deleted.
+   * @param consentId The ID of the consent to delete.
+   * @return true if the consent was deleted, false if it was not found.
+   */
+  public boolean revokeConsent(String userId, String consentId) {
+    return userRepository
+        .findById(userId)
+        .map(
+            user -> {
+              boolean removed =
+                  user.getConsents().removeIf(consent -> consent.getId().equals(consentId));
+              if (removed) {
+                userRepository.save(user);
+              }
+              return removed;
+            })
+        .orElse(false);
+  }
+
+  /**
+   * Removes a single attribute from an existing consent record.
+   *
+   * @param userId The ID of the user.
+   * @param consentId The ID of the consent record to modify.
+   * @param attributeId The ID of the attribute to remove from the consented list.
+   * @return true if the attribute was successfully removed and the user saved, false otherwise.
+   */
+  public boolean removeConsentedAttribute(String userId, String consentId, String attributeId) {
+    return userRepository
+        .findById(userId)
+        .flatMap(
+            user -> {
+              Optional<Consent> consentOpt =
+                  user.getConsents().stream().filter(c -> c.getId().equals(consentId)).findFirst();
+
+              if (consentOpt.isPresent()) {
+                Consent consent = consentOpt.get();
+                boolean attributeRemoved = consent.getSharedAttributes().remove(attributeId);
+                // Save only if the attribute was actually present and removed.
+                if (attributeRemoved) {
+                  userRepository.save(user);
+                  return Optional.of(true);
+                }
+              }
+              return Optional.empty();
+            })
+        .orElse(false);
+  }
+
+  /**
+   * Retrieves a list of attributes for a user that have been consented for a specific client.
+   *
+   * @param userId The ID of the user.
+   * @param clientId The client identifier.
+   * @return An Optional containing a list of consented IdentityAttributes, or empty if the user or
+   *     consent is not found.
+   */
+  public Optional<List<IdentityAttribute>> getConsentedAttributes(String userId, String clientId) {
+    return userRepository
+        .findById(userId)
+        .flatMap(
+            user ->
+                user.getConsents().stream()
+                    .filter(consent -> consent.getClientId().equals(clientId))
+                    .findFirst()
+                    .map(
+                        consent -> {
+                          List<String> consentedAttrIds = consent.getSharedAttributes();
+                          return user.getAttributes().stream()
+                              .filter(attr -> consentedAttrIds.contains(attr.getId()))
+                              .collect(Collectors.toList());
+                        }));
   }
 }

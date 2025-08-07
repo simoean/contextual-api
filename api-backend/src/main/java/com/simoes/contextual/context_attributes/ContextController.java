@@ -1,14 +1,10 @@
 package com.simoes.contextual.context_attributes;
 
-import com.simoes.contextual.user.User;
-import com.simoes.contextual.user.UserService;
+import com.simoes.contextual.util.UserUtil;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -20,22 +16,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ContextController {
 
-  private final UserService userService;
+  private final UserUtil userUtil;
   private final ContextService contextService;
-
-  /**
-   * Retrieves the currently authenticated user from the security context. This method assumes that
-   * the user is authenticated and exists in the service.
-   *
-   * @return The authenticated User object.
-   */
-  private User getAuthenticatedUser() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String username = authentication.getName();
-    return userService
-        .findUserByUsername(username)
-        .orElseThrow(() -> new RuntimeException("Authenticated user not found in service."));
-  }
 
   /**
    * Endpoint to get all contexts of the authenticated user.
@@ -44,8 +26,7 @@ public class ContextController {
    */
   @GetMapping
   public ResponseEntity<List<Context>> getUserContexts() {
-    User currentUser = getAuthenticatedUser();
-    return ResponseEntity.ok(currentUser.getContexts());
+    return ResponseEntity.ok(userUtil.getAuthenticatedUser().getContexts());
   }
 
   /**
@@ -56,10 +37,8 @@ public class ContextController {
    */
   @PostMapping
   public ResponseEntity<Context> createContext(@RequestBody Context newContext) {
-    User currentUser = getAuthenticatedUser();
-    Optional<Context> result = contextService.createContext(currentUser.getId(), newContext);
-
-    return result
+    return contextService
+        .createContext(userUtil.getAuthenticatedUserId(), newContext)
         .map(ctx -> ResponseEntity.status(HttpStatus.CREATED).body(ctx))
         .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
   }
@@ -74,11 +53,8 @@ public class ContextController {
   @PutMapping("/{contextId}")
   public ResponseEntity<Context> updateContext(
       @PathVariable String contextId, @RequestBody Context updatedContext) {
-    User currentUser = getAuthenticatedUser();
-    Optional<Context> result =
-        contextService.updateContext(currentUser.getId(), contextId, updatedContext);
-
-    return result
+    return contextService
+        .updateContext(userUtil.getAuthenticatedUserId(), contextId, updatedContext)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
   }
@@ -91,8 +67,7 @@ public class ContextController {
    */
   @DeleteMapping("/{contextId}")
   public ResponseEntity<Void> deleteContext(@PathVariable String contextId) {
-    User currentUser = getAuthenticatedUser();
-    boolean deleted = contextService.deleteContext(currentUser.getId(), contextId);
+    boolean deleted = contextService.deleteContext(userUtil.getAuthenticatedUserId(), contextId);
 
     if (deleted) {
       return ResponseEntity.noContent().build();

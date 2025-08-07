@@ -70,8 +70,9 @@ class ContextControllerIntegrationTest {
             "password", // Matches NoOpPasswordEncoder
             "context.user.int@example.com",
             Collections.singletonList("ROLE_USER"),
-            new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
-            new ArrayList<>(Arrays.asList(testAttributeFirstName)));
+            Arrays.asList(testContextPersonal, testContextProfessional),
+            Collections.singletonList(testAttributeFirstName),
+            Collections.emptyList());
 
     userService.saveUser(testUser);
   }

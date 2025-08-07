@@ -1,15 +1,11 @@
 package com.simoes.contextual.context_attributes;
 
-import com.simoes.contextual.user.User;
-import com.simoes.contextual.user.UserService;
+import com.simoes.contextual.util.UserUtil;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -21,22 +17,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AttributeController {
 
-  private final UserService userService;
+  private final UserUtil userUtil;
   private final AttributeService attributeService;
-
-  /**
-   * Retrieves the currently authenticated user from the security context. This method assumes that
-   * the user is authenticated and exists in the service.
-   *
-   * @return The authenticated User object.
-   */
-  private User getAuthenticatedUser() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String username = authentication.getName();
-    return userService
-        .findUserByUsername(username)
-        .orElseThrow(() -> new RuntimeException("Authenticated user not found in service."));
-  }
 
   /**
    * Endpoint to get all attributes of the authenticated user.
@@ -45,8 +27,7 @@ public class AttributeController {
    */
   @GetMapping
   public ResponseEntity<List<IdentityAttribute>> getAllUserAttributes() {
-    User currentUser = getAuthenticatedUser();
-    return ResponseEntity.ok(currentUser.getAttributes());
+    return ResponseEntity.ok(userUtil.getAuthenticatedUser().getAttributes());
   }
 
   /**
@@ -60,10 +41,8 @@ public class AttributeController {
   @GetMapping("/{contextId}") // Sub-path for contextual attributes
   public ResponseEntity<List<IdentityAttribute>> getContextualAttributes(
       @PathVariable String contextId) {
-    User currentUser = getAuthenticatedUser();
-
     List<IdentityAttribute> contextualAttributes =
-        currentUser.getAttributes().stream()
+        userUtil.getAuthenticatedUser().getAttributes().stream()
             .filter(
                 attribute ->
                     attribute.getContextIds() != null
@@ -84,11 +63,8 @@ public class AttributeController {
   @PostMapping
   public ResponseEntity<IdentityAttribute> createAttribute(
       @RequestBody IdentityAttribute newAttribute) {
-    User currentUser = getAuthenticatedUser();
-    Optional<IdentityAttribute> result =
-        attributeService.createAttribute(currentUser.getId(), newAttribute);
-
-    return result
+    return attributeService
+        .createAttribute(userUtil.getAuthenticatedUserId(), newAttribute)
         .map(attr -> ResponseEntity.status(HttpStatus.CREATED).body(attr))
         .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
   }
@@ -104,11 +80,8 @@ public class AttributeController {
   @PutMapping("/{attributeId}")
   public ResponseEntity<IdentityAttribute> updateAttribute(
       @PathVariable String attributeId, @RequestBody IdentityAttribute updatedAttribute) {
-    User currentUser = getAuthenticatedUser();
-    Optional<IdentityAttribute> result =
-        attributeService.updateAttribute(currentUser.getId(), attributeId, updatedAttribute);
-
-    return result
+    return attributeService
+        .updateAttribute(userUtil.getAuthenticatedUserId(), attributeId, updatedAttribute)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
   }
@@ -121,8 +94,8 @@ public class AttributeController {
    */
   @DeleteMapping("/{attributeId}")
   public ResponseEntity<Void> deleteAttribute(@PathVariable String attributeId) {
-    User currentUser = getAuthenticatedUser();
-    boolean deleted = attributeService.deleteAttribute(currentUser.getId(), attributeId);
+    boolean deleted =
+        attributeService.deleteAttribute(userUtil.getAuthenticatedUserId(), attributeId);
 
     if (deleted) {
       return ResponseEntity.noContent().build();

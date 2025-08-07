@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-consent-array
+      author: simoes
+      changes:
+        - runCommand:
+            command: |
+              {
+                update: "users",
+                updates: [
+                  {
+                    q: {},
+                    u: { "$set": { "consents": [] } },
+                    multi: true
+                  }
+                ]
+              }

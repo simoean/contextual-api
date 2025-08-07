@@ -86,10 +86,10 @@ class AttributeControllerIntegrationTest {
             "password", // Matches NoOpPasswordEncoder
             "attribute.user.int@example.com",
             Collections.singletonList("ROLE_USER"),
-            new ArrayList<>(Arrays.asList(testContextGeneral, testContextSpecific)),
-            new ArrayList<>(
-                Arrays.asList(
-                    attrEmailVisibleGeneral, attrPhoneVisibleSpecific, attrAddressHiddenGeneral)));
+            Arrays.asList(testContextGeneral, testContextSpecific),
+            Arrays.asList(
+                    attrEmailVisibleGeneral, attrPhoneVisibleSpecific, attrAddressHiddenGeneral),
+            Collections.emptyList());
 
     userService.saveUser(testUser);
   }

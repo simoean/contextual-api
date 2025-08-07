@@ -4,7 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 import java.util.ArrayList;
@@ -59,8 +59,7 @@ class UserControllerIntegrationTest {
             "firstName",
             "John",
             true,
-            new ArrayList<>(
-                Arrays.asList(testContextPersonal.getId(), testContextProfessional.getId())));
+            Arrays.asList(testContextPersonal.getId(), testContextProfessional.getId()));
     IdentityAttribute testAttributeLastName =
         new IdentityAttribute(
             "attr-int-2",
@@ -68,7 +67,15 @@ class UserControllerIntegrationTest {
             "lastName",
             "Doe",
             true,
-            new ArrayList<>(Collections.singletonList(testContextPersonal.getId())));
+            Collections.singletonList(testContextPersonal.getId()));
+
+    Consent testConsent =
+            Consent.builder()
+                    .id("consent-int-1")
+                    .clientId("client-app-int")
+                    .sharedAttributes(Collections.singletonList("attr-int-1"))
+                    .timestamps(Collections.emptyList())
+                    .build();
 
     testUser =
         new User(
@@ -78,8 +85,9 @@ class UserControllerIntegrationTest {
             // (NoOpPasswordEncoder)
             "john.int@example.com",
             Collections.singletonList("ROLE_USER"),
-            new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
-            new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)));
+            Arrays.asList(testContextPersonal, testContextProfessional),
+            Arrays.asList(testAttributeFirstName, testAttributeLastName),
+            Collections.singletonList(testConsent));
 
     // Save the test user into the embedded MongoDB
     userRepository.save(testUser);
@@ -120,5 +128,59 @@ class UserControllerIntegrationTest {
         .perform(get("/api/users/me").contentType(MediaType.APPLICATION_JSON))
         // Then: Status should be UNAUTHORIZED (401)
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("Should return consented attributes for a valid client and user")
+  @WithMockUser(username = "controller.user.int")
+  void Given_ValidUserAndClientId_When_GetConsentedAttributes_Then_ReturnsOkAndFilteredAttributes()
+          throws Exception {
+    mockMvc
+            .perform(
+                    get("/api/users/{userId}/attributes", testUser.getId())
+                            .param("clientId", "client-app-int")
+                            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value("attr-int-1"))
+            .andExpect(jsonPath("$[0].name").value("firstName"));
+  }
+
+  @Test
+  @DisplayName("Should return 404 NOT_FOUND when no consent exists for the client")
+  @WithMockUser(username = "controller.user.int")
+  void Given_ValidUserButNoConsent_When_GetConsentedAttributes_Then_ReturnsNotFound()
+          throws Exception {
+    mockMvc
+            .perform(
+                    get("/api/users/{userId}/attributes", testUser.getId())
+                            .param("clientId", "non-existent-client")
+                            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("Should return 404 NOT_FOUND when user ID does not exist")
+  @WithMockUser(username = "controller.user.int")
+  void Given_NonExistentUser_When_GetConsentedAttributes_Then_ReturnsNotFound() throws Exception {
+    mockMvc
+            .perform(
+                    get("/api/users/{userId}/attributes", "non-existent-user-id")
+                            .param("clientId", "client-app-int")
+                            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("Should return 401 UNAUTHORIZED when not authenticated")
+  void Given_UnauthenticatedUser_When_GetConsentedAttributes_Then_ReturnsUnauthorized()
+          throws Exception {
+    mockMvc
+            .perform(
+                    get("/api/users/{userId}/attributes", testUser.getId())
+                            .param("clientId", "client-app-int")
+                            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
   }
 }

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 001-initial-user-data
-      author: gemini
+      author: simoes
       changes:
         - insertOne:
             collectionName: users

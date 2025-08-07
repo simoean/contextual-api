@@ -1,5 +1,6 @@
 package com.simoes.contextual.user;
 
+import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 import lombok.AllArgsConstructor;
@@ -33,11 +34,14 @@ public class User implements UserDetails {
   private String email;
   private List<String> roles;
 
-  @Builder.Default // <--- ADD THIS
+  @Builder.Default
   private List<Context> contexts = Collections.emptyList();
 
-  @Builder.Default // <--- ADD THIS
+  @Builder.Default
   private List<IdentityAttribute> attributes = Collections.emptyList();
+
+  @Builder.Default
+  private List<Consent> consents = Collections.emptyList();
 
   /**
    * Returns the authorities granted to the user.

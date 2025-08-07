@@ -64,7 +64,8 @@ class AttributeServiceTest {
             "john@example.com",
             Collections.singletonList("ROLE_USER"),
             Collections.emptyList(),
-            new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)));
+            Arrays.asList(testAttributeFirstName, testAttributeLastName),
+            Collections.emptyList());
   }
 
   @Test

@@ -67,6 +67,7 @@ class AuthControllerTest {
             "test@example.com",
             Collections.singletonList("ROLE_USER"),
             Collections.emptyList(),
+            Collections.emptyList(),
             Collections.emptyList());
 
     // Mock a successful authentication object
@@ -190,6 +191,7 @@ class AuthControllerTest {
               "encodedPassword",
               "newuser@example.com",
               Collections.singletonList("ROLE_USER"),
+              Collections.emptyList(),
               Collections.emptyList(),
               Collections.emptyList());
 
@@ -360,8 +362,7 @@ class AuthControllerTest {
       verify(userService, times(1)).findUserByUsername(registerRequest.getUsername());
       verify(passwordEncoder, times(1)).encode(registerRequest.getPassword());
       verify(userService, times(1)).saveUser(any(User.class));
-      verify(userService, never())
-          .provisionDefaultUserData(any(User.class));
+      verify(userService, never()).provisionDefaultUserData(any(User.class));
       verify(authenticationManager, never())
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
