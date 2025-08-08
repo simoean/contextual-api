@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +48,8 @@ class ConsentServiceTest {
             .id("consent-123")
             .clientId("client-app-1")
             .sharedAttributes(List.of("attr-1", "attr-2"))
-            .timestamps(Collections.emptyList())
+            .createdAt(new Date())
+            .accessedAt(Collections.emptyList())
             .build();
 
     testNewConsent =

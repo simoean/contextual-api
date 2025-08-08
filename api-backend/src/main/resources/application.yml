@@ -11,4 +11,3 @@ spring:
 # JWT Configuration
 jwt:
   secret: movPHMSG8X8r9vu0dvItrJrco23jO6v09rjEdubpkz8ewm9UsHO7DDDYEQM+RHAOKihGT1tIJaRaTsDrY1+ivw==
-  expirationMs: 86400000 # 24 hours

@@ -3,6 +3,7 @@ package com.simoes.contextual.security.jwt;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
+import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -65,7 +66,6 @@ class JwtTokenProviderTest {
 
     // Use ReflectionTestUtils to set the private @Value fields in JwtTokenProvider
     ReflectionTestUtils.setField(jwtTokenProvider, "jwtSecret", testSecret);
-    ReflectionTestUtils.setField(jwtTokenProvider, "jwtExpirationMs", 3600000);
   }
 
   @Test
@@ -75,7 +75,7 @@ class JwtTokenProviderTest {
     when(authentication.getPrincipal()).thenReturn(testUser);
 
     // When: The generateToken method is called
-    String token = jwtTokenProvider.generateToken(authentication);
+    String token = jwtTokenProvider.generateToken(authentication, "test-consent", TokenValidity.ONE_DAY);
 
     // Then: The generated token should not be null or empty
     assertNotNull(token, "Generated token should not be null");
@@ -99,6 +99,9 @@ class JwtTokenProviderTest {
     assertEquals(
         testUser.getId(), claims.getId(), "Token 'userId' claim should match");
     assertTrue(
+        claims.get("consentId", String.class).contains("test-consent"),
+        "Token 'consentId' claim should contain test-consent");
+    assertTrue(
         claims.get("roles", String.class).contains("ROLE_USER"),
         "Token 'roles' claim should contain ROLE_USER");
     assertNotNull(claims.getIssuedAt(), "Token should have an issuedAt claim");
@@ -113,7 +116,7 @@ class JwtTokenProviderTest {
   void Given_ValidJwtToken_When_ValidateToken_Then_ReturnsTrue() {
     // Given: A valid token generated for our test user
     when(authentication.getPrincipal()).thenReturn(testUser);
-    String validToken = jwtTokenProvider.generateToken(authentication);
+    String validToken = jwtTokenProvider.generateToken(authentication, null, TokenValidity.ONE_DAY);
 
     // When: The validateToken method is called with the valid token
     boolean isValid = jwtTokenProvider.validateToken(validToken);
@@ -153,7 +156,7 @@ class JwtTokenProviderTest {
   void Given_JwtTokenWithInvalidSignature_When_ValidateToken_Then_ReturnsFalse() {
     // Given: A valid token (from our generator)
     when(authentication.getPrincipal()).thenReturn(testUser);
-    String validToken = jwtTokenProvider.generateToken(authentication);
+    String validToken = jwtTokenProvider.generateToken(authentication, null, TokenValidity.ONE_DAY);
 
     // Given: A tampered token created by altering the valid token's signature
     String invalidSignatureToken =
@@ -210,7 +213,7 @@ class JwtTokenProviderTest {
   void Given_ValidJwtToken_When_GetUsernameFromJwt_Then_ReturnsCorrectUsername() {
     // Given: A valid token generated for our test user
     when(authentication.getPrincipal()).thenReturn(testUser);
-    String token = jwtTokenProvider.generateToken(authentication);
+    String token = jwtTokenProvider.generateToken(authentication, null, TokenValidity.ONE_DAY);
 
     // When: The getUsernameFromJwt method is called
     String extractedUsername = jwtTokenProvider.getUsernameFromJwt(token);
@@ -263,7 +266,7 @@ class JwtTokenProviderTest {
   void Given_InvalidSignatureJwtToken_When_GetUsernameFromJwt_Then_ThrowsSignatureException() {
     // Given: A valid token with a tampered signature
     when(authentication.getPrincipal()).thenReturn(testUser);
-    String validToken = jwtTokenProvider.generateToken(authentication);
+    String validToken = jwtTokenProvider.generateToken(authentication, null, TokenValidity.ONE_DAY);
     String invalidSignatureToken = validToken.substring(0, validToken.length() - 5) + "BADSIG";
 
     // When/Then: Calling getUsernameFromJwt should throw a SignatureException

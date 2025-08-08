@@ -64,7 +64,9 @@ class UserServiceTest {
             .id("consent-123")
             .clientId("client-app-1")
             .sharedAttributes(Arrays.asList("attr-1", "attr-2"))
-            .timestamps(new ArrayList<>(Collections.singletonList(new java.util.Date())))
+            .createdAt(new Date())
+            .lastUpdatedAt(new Date())
+            .accessedAt(new ArrayList<>(Collections.singletonList(new java.util.Date())))
             .build();
 
     testUser =
@@ -647,8 +649,8 @@ class UserServiceTest {
       when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-      // Store the initial number of timestamps
-      int initialTimestamps = testConsent.getTimestamps().size();
+      // Store the last updated at for the existing consent
+      Date lastUpdatedAt = testConsent.getLastUpdatedAt();
 
       // When: recordConsent is called with an existing client
       Optional<User> result = userService.recordConsent(testUser.getId(), existingConsent);
@@ -662,7 +664,7 @@ class UserServiceTest {
               .orElseThrow();
 
       assertEquals(existingConsent.getSharedAttributes(), updatedConsent.getSharedAttributes());
-      assertEquals(initialTimestamps + 1, updatedConsent.getTimestamps().size());
+      assertNotEquals(lastUpdatedAt, updatedConsent.getLastUpdatedAt());
 
       // Verify that save was called once
       verify(userRepository, times(1)).save(testUser);
@@ -777,7 +779,9 @@ class UserServiceTest {
               .id("consent-123")
               .clientId("client-app-1")
               .sharedAttributes(new ArrayList<>(Arrays.asList("attr-1", "attr-3")))
-              .timestamps(Collections.emptyList())
+              .createdAt(new Date())
+              .lastUpdatedAt(new Date())
+              .accessedAt(Collections.emptyList())
               .build();
 
       testUserWithConsent =

@@ -1,11 +1,17 @@
 package com.simoes.contextual.security.jwt;
 
+import com.simoes.contextual.consent.Consent;
+import com.simoes.contextual.consent.ConsentService;
+import com.simoes.contextual.user.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtTokenProvider jwtTokenProvider;
   private final UserDetailsService userDetailsService;
+  private final ConsentService consentService;
 
   /**
    * This method is called for every request to check if a valid JWT is present. If valid, it sets
@@ -48,18 +55,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     try {
       String jwt = getJwtFromRequest(request);
 
+      // Check if a JWT exists and its signature is valid
       if (StringUtils.hasText(jwt)
           && jwtTokenProvider.validateToken(jwt)
           && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+        // Extract username and user details from the JWT
         String username = jwtTokenProvider.getUsernameFromJwt(jwt);
-
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(
-                userDetails, null, userDetails.getAuthorities());
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        String userId = ((User) userDetails).getId();
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        // Check if the JWT contains a consent ID and retrieve the associated consent
+        String consentId = jwtTokenProvider.getConsentIdFromJwt(jwt);
+        Optional<Consent> optionalConsent = consentService.findConsentById(userId, consentId);
+
+        if (optionalConsent.isPresent()) {
+          Consent consent = optionalConsent.get();
+          // Perform the custom token validity check
+          Duration validityDuration =
+              Duration.ofMillis(consent.getTokenValidity().getExpirationInMilliseconds());
+          Instant tokenExpiration =
+              jwtTokenProvider.getIssuedAtFromJwt(jwt).toInstant().plus(validityDuration);
+
+          if (Instant.now().isBefore(tokenExpiration)) {
+            // Token is still valid based on consent. Proceed with authentication.
+            UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Update the last accessed time on the consent record
+            consentService.auditAccess(userId, consentId);
+          } else {
+            logger.warn("Token for consent ID {} has expired based on custom validity.", consentId);
+          }
+        } else {
+          logger.warn("No consent found for the provided consent ID in the token.");
+        }
       }
     } catch (Exception ex) {
       logger.error("Cannot set user authentication: {}", ex.getMessage());

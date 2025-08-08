@@ -7,10 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +49,8 @@ class ConsentControllerIntegrationTest {
             .id("consent-int-1")
             .clientId("client-app-int")
             .sharedAttributes(Arrays.asList("attr-1", "attr-2"))
-            .timestamps(new ArrayList<>(List.of(new java.util.Date())))
+            .createdAt(new Date())
+            .accessedAt(new ArrayList<>(List.of(new Date())))
             .build();
 
     testUser =
@@ -121,7 +119,7 @@ class ConsentControllerIntegrationTest {
   void Given_AuthenticatedUser_When_RecordExistingConsent_Then_ConsentIsUpdated() throws Exception {
     // Initial number of attributes and timestamps
     User initialUser = userService.findUserByUsername(testUser.getUsername()).orElseThrow();
-    int initialTimestamps = initialUser.getConsents().get(0).getTimestamps().size();
+    Date lastUpdatedAt = initialUser.getConsents().get(0).getLastUpdatedAt();
 
     // Create an "updated" consent for the same client ID
     Consent updatedConsent =
@@ -145,7 +143,7 @@ class ConsentControllerIntegrationTest {
     Consent savedConsent = userAfterUpdate.getConsents().get(0);
     assertEquals(2, savedConsent.getSharedAttributes().size());
     assertTrue(savedConsent.getSharedAttributes().contains("attr-4"));
-    assertEquals(initialTimestamps + 1, savedConsent.getTimestamps().size());
+    assertNotEquals(lastUpdatedAt, savedConsent.getLastUpdatedAt());
   }
 
   @Test

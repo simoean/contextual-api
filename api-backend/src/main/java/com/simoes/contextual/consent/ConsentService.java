@@ -17,6 +17,17 @@ public class ConsentService {
   private final UserService userService;
 
   /**
+   * Retrieves a user's consent by its ID.
+   *
+   * @param userId The ID of the user.
+   * @param consentId The ID of the consent record.
+   * @return An Optional containing the Consent if found, or empty if not found.
+   */
+  public Optional<Consent> findConsentById(String userId, String consentId) {
+    return userService.findConsentById(userId, consentId);
+  }
+
+  /**
    * Records or updates a user's consent for a specific client application.
    *
    * @param userId The ID of the user.
@@ -47,7 +58,17 @@ public class ConsentService {
    * @param attributeId The ID of the attribute to remove.
    * @return true if the attribute was successfully removed, false if not found.
    */
-  public boolean revokeAttributeFromConsent(String userId, String consentId, String attributeId) {
+  boolean revokeAttributeFromConsent(String userId, String consentId, String attributeId) {
     return userService.removeConsentedAttribute(userId, consentId, attributeId);
+  }
+
+  /**
+   * Audits access to a user's consent.
+   *
+   * @param userId The ID of the user.
+   * @param consentId The ID of the consent record.
+   */
+  public void auditAccess(String userId, String consentId) {
+    userService.auditAccess(userId, consentId);
   }
 }

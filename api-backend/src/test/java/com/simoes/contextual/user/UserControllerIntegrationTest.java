@@ -7,9 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -70,12 +70,13 @@ class UserControllerIntegrationTest {
             Collections.singletonList(testContextPersonal.getId()));
 
     Consent testConsent =
-            Consent.builder()
-                    .id("consent-int-1")
-                    .clientId("client-app-int")
-                    .sharedAttributes(Collections.singletonList("attr-int-1"))
-                    .timestamps(Collections.emptyList())
-                    .build();
+        Consent.builder()
+            .id("consent-int-1")
+            .clientId("client-app-int")
+            .sharedAttributes(Collections.singletonList("attr-int-1"))
+            .createdAt(new Date())
+            .accessedAt(Collections.emptyList())
+            .build();
 
     testUser =
         new User(
@@ -134,30 +135,30 @@ class UserControllerIntegrationTest {
   @DisplayName("Should return consented attributes for a valid client and user")
   @WithMockUser(username = "controller.user.int")
   void Given_ValidUserAndClientId_When_GetConsentedAttributes_Then_ReturnsOkAndFilteredAttributes()
-          throws Exception {
+      throws Exception {
     mockMvc
-            .perform(
-                    get("/api/users/{userId}/attributes", testUser.getId())
-                            .param("clientId", "client-app-int")
-                            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].id").value("attr-int-1"))
-            .andExpect(jsonPath("$[0].name").value("firstName"));
+        .perform(
+            get("/api/users/{userId}/attributes", testUser.getId())
+                .param("clientId", "client-app-int")
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value("attr-int-1"))
+        .andExpect(jsonPath("$[0].name").value("firstName"));
   }
 
   @Test
   @DisplayName("Should return 404 NOT_FOUND when no consent exists for the client")
   @WithMockUser(username = "controller.user.int")
   void Given_ValidUserButNoConsent_When_GetConsentedAttributes_Then_ReturnsNotFound()
-          throws Exception {
+      throws Exception {
     mockMvc
-            .perform(
-                    get("/api/users/{userId}/attributes", testUser.getId())
-                            .param("clientId", "non-existent-client")
-                            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isNotFound());
+        .perform(
+            get("/api/users/{userId}/attributes", testUser.getId())
+                .param("clientId", "non-existent-client")
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -165,22 +166,22 @@ class UserControllerIntegrationTest {
   @WithMockUser(username = "controller.user.int")
   void Given_NonExistentUser_When_GetConsentedAttributes_Then_ReturnsNotFound() throws Exception {
     mockMvc
-            .perform(
-                    get("/api/users/{userId}/attributes", "non-existent-user-id")
-                            .param("clientId", "client-app-int")
-                            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isNotFound());
+        .perform(
+            get("/api/users/{userId}/attributes", "non-existent-user-id")
+                .param("clientId", "client-app-int")
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound());
   }
 
   @Test
   @DisplayName("Should return 401 UNAUTHORIZED when not authenticated")
   void Given_UnauthenticatedUser_When_GetConsentedAttributes_Then_ReturnsUnauthorized()
-          throws Exception {
+      throws Exception {
     mockMvc
-            .perform(
-                    get("/api/users/{userId}/attributes", testUser.getId())
-                            .param("clientId", "client-app-int")
-                            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isUnauthorized());
+        .perform(
+            get("/api/users/{userId}/attributes", testUser.getId())
+                .param("clientId", "client-app-int")
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isUnauthorized());
   }
 }

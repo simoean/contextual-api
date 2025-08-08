@@ -1,6 +1,7 @@
 package com.simoes.contextual.user;
 
 import com.simoes.contextual.consent.Consent;
+import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 
@@ -358,6 +359,23 @@ public class UserService {
   }
 
   /**
+   * Finds a user's consent by its ID.
+   *
+   * @param userId The ID of the user.
+   * @param consentId The ID of the consent record.
+   * @return An Optional containing the Consent if found, or empty if not found.
+   */
+  public Optional<Consent> findConsentById(String userId, String consentId) {
+    return userRepository
+        .findById(userId)
+        .flatMap(
+            user ->
+                user.getConsents().stream()
+                    .filter(consent -> consent.getId().equals(consentId))
+                    .findFirst());
+  }
+
+  /**
    * Records or updates a user's consent for a specific client application. If a consent record for
    * the client already exists, it updates the shared attributes and timestamps. If not, a new
    * consent record is created.
@@ -386,12 +404,14 @@ public class UserService {
               if (existingConsent.isPresent()) {
                 Consent consent = existingConsent.get();
                 consent.setSharedAttributes(newConsent.getSharedAttributes());
-                consent.getTimestamps().add(new Date());
+                consent.setLastUpdatedAt(new Date());
               } else {
                 consents.add(
                     newConsent
                         .withId("cons-" + UUID.randomUUID().toString().substring(0, 8))
-                        .withTimestamps(Collections.singletonList(new Date())));
+                        .withCreatedAt(new Date())
+                        .withLastUpdatedAt(new Date())
+                        .withTokenValidity(TokenValidity.ONE_HOUR));
               }
               return userRepository.save(user);
             });
@@ -472,5 +492,28 @@ public class UserService {
                               .filter(attr -> consentedAttrIds.contains(attr.getId()))
                               .collect(Collectors.toList());
                         }));
+  }
+
+  /**
+   * Audits access to a user's consent. This method can be used to log or track access to a user's
+   * consent for compliance and monitoring purposes.
+   *
+   * @param userId The ID of the user.
+   * @param consentId The ID of the consent record.
+   */
+  public void auditAccess(String userId, String consentId) {
+    userRepository
+        .findById(userId)
+        .ifPresent(
+            user -> {
+              Optional<Consent> consentOpt =
+                  user.getConsents().stream().filter(c -> c.getId().equals(consentId)).findFirst();
+
+              if (consentOpt.isPresent()) {
+                Consent consent = consentOpt.get();
+                consent.getAccessedAt().add(new Date());
+                userRepository.save(user);
+              }
+            });
   }
 }

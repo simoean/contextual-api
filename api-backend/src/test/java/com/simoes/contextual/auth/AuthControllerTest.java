@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.security.jwt.JwtTokenProvider;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
@@ -58,7 +59,9 @@ class AuthControllerTest {
     // Common setup for test data
     testLoginRequest =
         new LoginRequest(
-            "testuser", "$2a$10$6QNMDq1kYlRn16BdqEYIUudW3qJwNI.Fpqb9zpwnzyELvQJsNGomq");
+            "testuser",
+            "$2a$10$6QNMDq1kYlRn16BdqEYIUudW3qJwNI.Fpqb9zpwnzyELvQJsNGomq",
+            "test-client");
     testUser =
         new User(
             "user123",
@@ -91,7 +94,9 @@ class AuthControllerTest {
         .thenReturn(Optional.of(testUser));
 
     // Given: JwtTokenProvider successfully generates a JWT token
-    when(jwtTokenProvider.generateToken(any(Authentication.class))).thenReturn("mocked-jwt-token");
+    when(jwtTokenProvider.generateToken(
+            any(Authentication.class), anyString(), any(TokenValidity.class)))
+        .thenReturn("mocked-jwt-token");
 
     // When: The login endpoint is called
     ResponseEntity<AuthResponse> response = authController.authenticateUser(testLoginRequest);
@@ -225,7 +230,8 @@ class AuthControllerTest {
           .thenReturn(newAuthenticatedAuth);
 
       // Given: JwtTokenProvider generates a token
-      when(jwtTokenProvider.generateToken(any(Authentication.class))).thenReturn("new-mocked-jwt");
+      when(jwtTokenProvider.generateToken(any(Authentication.class), any(), any()))
+          .thenReturn("new-mocked-jwt");
 
       // When: The register endpoint is called
       ResponseEntity<AuthResponse> response = authController.registerUser(registerRequest);
@@ -252,7 +258,8 @@ class AuthControllerTest {
                       token.getPrincipal().equals(registerRequest.getUsername())
                           && token.getCredentials().equals(registerRequest.getPassword())));
       verify(securityContext, times(1)).setAuthentication(newAuthenticatedAuth);
-      verify(jwtTokenProvider, times(1)).generateToken(newAuthenticatedAuth);
+      verify(jwtTokenProvider, times(1))
+          .generateToken(newAuthenticatedAuth, null, TokenValidity.ONE_DAY);
     }
 
     @Test
@@ -281,7 +288,7 @@ class AuthControllerTest {
       verify(authenticationManager, never())
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
-      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class));
+      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class), any(), any());
     }
 
     @Test
@@ -328,7 +335,7 @@ class AuthControllerTest {
       verify(authenticationManager, times(1))
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
-      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class));
+      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class), any(), any());
     }
 
     @Test
@@ -366,7 +373,7 @@ class AuthControllerTest {
       verify(authenticationManager, never())
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
-      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class));
+      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class), any(), any());
     }
   }
 }

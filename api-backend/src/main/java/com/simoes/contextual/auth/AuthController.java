@@ -1,5 +1,6 @@
 package com.simoes.contextual.auth;
 
+import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.security.jwt.JwtTokenProvider;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
@@ -71,7 +72,7 @@ public class AuthController {
                           "Authenticated user not found in service after authentication."));
 
       // Generate the JWT token AFTER successful authentication
-      String jwt = jwtTokenProvider.generateToken(authentication);
+      String jwt = jwtTokenProvider.generateToken(authentication, loginRequest.getClientId(), TokenValidity.ONE_DAY);
 
       // Create AuthResponse with the generated JWT token
       AuthResponse authResponse =
@@ -136,7 +137,7 @@ public class AuthController {
 
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      String jwt = jwtTokenProvider.generateToken(authentication);
+      String jwt = jwtTokenProvider.generateToken(authentication, null, TokenValidity.ONE_DAY);
 
       AuthResponse authResponse =
           AuthResponse.builder()
