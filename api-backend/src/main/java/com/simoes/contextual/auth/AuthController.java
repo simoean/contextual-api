@@ -15,6 +15,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder; // <--- ADD THIS IMPORT
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -71,8 +72,16 @@ public class AuthController {
                       new RuntimeException(
                           "Authenticated user not found in service after authentication."));
 
-      // Generate the JWT token AFTER successful authentication
-      String jwt = jwtTokenProvider.generateToken(authentication, loginRequest.getClientId(), TokenValidity.ONE_DAY);
+      String jwt;
+      // Check if a clientId is provided; if so, generate a consent token
+      if (StringUtils.hasText(loginRequest.getClientId())) {
+        // Here, you might fetch the user's preferred validity from a consent management screen
+        // For now, we'll use a default of ONE_DAY as per your previous code
+        jwt = jwtTokenProvider.generateConsentToken(authentication, loginRequest.getClientId(), TokenValidity.ONE_DAY);
+      } else {
+        // If no clientId, generate a regular token
+        jwt = jwtTokenProvider.generateDashboardToken(authentication);
+      }
 
       // Create AuthResponse with the generated JWT token
       AuthResponse authResponse =
@@ -137,7 +146,7 @@ public class AuthController {
 
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      String jwt = jwtTokenProvider.generateToken(authentication, null, TokenValidity.ONE_DAY);
+      String jwt = jwtTokenProvider.generateDashboardToken(authentication);
 
       AuthResponse authResponse =
           AuthResponse.builder()

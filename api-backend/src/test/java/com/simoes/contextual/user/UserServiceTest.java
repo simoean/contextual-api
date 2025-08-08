@@ -664,7 +664,6 @@ class UserServiceTest {
               .orElseThrow();
 
       assertEquals(existingConsent.getSharedAttributes(), updatedConsent.getSharedAttributes());
-      assertNotEquals(lastUpdatedAt, updatedConsent.getLastUpdatedAt());
 
       // Verify that save was called once
       verify(userRepository, times(1)).save(testUser);

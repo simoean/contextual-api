@@ -93,11 +93,6 @@ class AuthControllerTest {
     when(userService.findUserByUsername(testLoginRequest.getUsername()))
         .thenReturn(Optional.of(testUser));
 
-    // Given: JwtTokenProvider successfully generates a JWT token
-    when(jwtTokenProvider.generateToken(
-            any(Authentication.class), anyString(), any(TokenValidity.class)))
-        .thenReturn("mocked-jwt-token");
-
     // When: The login endpoint is called
     ResponseEntity<AuthResponse> response = authController.authenticateUser(testLoginRequest);
 
@@ -230,7 +225,7 @@ class AuthControllerTest {
           .thenReturn(newAuthenticatedAuth);
 
       // Given: JwtTokenProvider generates a token
-      when(jwtTokenProvider.generateToken(any(Authentication.class), any(), any()))
+      when(jwtTokenProvider.generateDashboardToken(any(Authentication.class)))
           .thenReturn("new-mocked-jwt");
 
       // When: The register endpoint is called
@@ -258,8 +253,7 @@ class AuthControllerTest {
                       token.getPrincipal().equals(registerRequest.getUsername())
                           && token.getCredentials().equals(registerRequest.getPassword())));
       verify(securityContext, times(1)).setAuthentication(newAuthenticatedAuth);
-      verify(jwtTokenProvider, times(1))
-          .generateToken(newAuthenticatedAuth, null, TokenValidity.ONE_DAY);
+      verify(jwtTokenProvider, times(1)).generateDashboardToken(newAuthenticatedAuth);
     }
 
     @Test
@@ -288,7 +282,7 @@ class AuthControllerTest {
       verify(authenticationManager, never())
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
-      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class), any(), any());
+      verify(jwtTokenProvider, never()).generateDashboardToken(any(Authentication.class));
     }
 
     @Test
@@ -335,7 +329,7 @@ class AuthControllerTest {
       verify(authenticationManager, times(1))
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
-      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class), any(), any());
+      verify(jwtTokenProvider, never()).generateDashboardToken(any(Authentication.class));
     }
 
     @Test
@@ -373,7 +367,7 @@ class AuthControllerTest {
       verify(authenticationManager, never())
           .authenticate(any(UsernamePasswordAuthenticationToken.class));
       verify(securityContext, never()).setAuthentication(any(Authentication.class));
-      verify(jwtTokenProvider, never()).generateToken(any(Authentication.class), any(), any());
+      verify(jwtTokenProvider, never()).generateDashboardToken(any(Authentication.class));
     }
   }
 }

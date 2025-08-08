@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import java.security.Key;
 import java.util.Date;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
@@ -28,12 +29,44 @@ public class JwtTokenProvider {
   private String jwtSecret;
 
   /**
-   * Generates a JWT token for the authenticated user.
+   * Generates a dashboard JWT token for the authenticated user, without a consentId.
    *
-   * @param authentication the authentication object containing user details
-   * @return a signed JWT token as a String
+   * @param authentication The authentication object containing user details.
+   * @return a signed JWT token as a String.
    */
-  public String generateToken(Authentication authentication, String consentId, TokenValidity validity) {
+  public String generateDashboardToken(Authentication authentication) {
+    User user = (User) authentication.getPrincipal();
+
+    String roles =
+            user.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.joining(","));
+
+    Date now = new Date();
+    long expirationMillis = now.getTime() + TokenValidity.ONE_DAY.getExpirationInMilliseconds();
+
+    return Jwts.builder()
+            .claims()
+            .id(user.getId())
+            .subject(user.getUsername())
+            .issuedAt(now)
+            .expiration(new Date(expirationMillis))
+            .add("roles", roles)
+            .and()
+            .signWith(key())
+            .compact();
+  }
+
+  /**
+   * Generates a JWT token for a specific consent, with a custom expiration based on the
+   * user's selection.
+   *
+   * @param authentication The authentication object containing user details.
+   * @param clientId The ID of the client app.
+   * @param validity The token validity period chosen by the user.
+   * @return a signed JWT token as a String.
+   */
+  public String generateConsentToken(Authentication authentication, String clientId, TokenValidity validity) {
     // User class implements UserDetails
     User user = (User) authentication.getPrincipal();
 
@@ -53,7 +86,7 @@ public class JwtTokenProvider {
             .subject(user.getUsername())
             .issuedAt(now)
             .expiration(new Date(now.getTime() + expirationMillis))
-            .add("consentId", consentId)
+            .add("clientId", clientId)
             .add("roles", roles)
             .and()
             .signWith(key())
@@ -95,18 +128,23 @@ public class JwtTokenProvider {
   }
 
   /**
-   * Extracts the consentId from the JWT token.
+   * Safely extracts the clientId from the JWT token.
    *
-   * @param token the JWT token
-   * @return the consentId extracted from the token
+   * @param token The JWT token.
+   * @return An Optional containing the clientId if present, otherwise empty.
    */
-  public String getConsentIdFromJwt(String token) {
-    return Jwts.parser()
-            .verifyWith((SecretKey) key())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload()
-            .get("consentId", String.class);
+  public Optional<String> getClientIdFromJwt(String token) {
+    try {
+      Claims claims = Jwts.parser()
+              .verifyWith((SecretKey) key())
+              .build()
+              .parseSignedClaims(token)
+              .getPayload();
+      return Optional.ofNullable(claims.get("clientId", String.class));
+    } catch (JwtException | IllegalArgumentException e) {
+      log.debug("JWT does not contain a clientId claim.", e);
+      return Optional.empty();
+    }
   }
 
   /**

@@ -20,11 +20,11 @@ public class ConsentService {
    * Retrieves a user's consent by its ID.
    *
    * @param userId The ID of the user.
-   * @param consentId The ID of the consent record.
+   * @param clientId The ID of the client.
    * @return An Optional containing the Consent if found, or empty if not found.
    */
-  public Optional<Consent> findConsentById(String userId, String consentId) {
-    return userService.findConsentById(userId, consentId);
+  public Optional<Consent> findConsentById(String userId, String clientId) {
+    return userService.findConsentById(userId, clientId);
   }
 
   /**

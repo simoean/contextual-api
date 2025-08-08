@@ -362,16 +362,16 @@ public class UserService {
    * Finds a user's consent by its ID.
    *
    * @param userId The ID of the user.
-   * @param consentId The ID of the consent record.
+   * @param clientId The ID of the consent record.
    * @return An Optional containing the Consent if found, or empty if not found.
    */
-  public Optional<Consent> findConsentById(String userId, String consentId) {
+  public Optional<Consent> findConsentById(String userId, String clientId) {
     return userRepository
         .findById(userId)
         .flatMap(
             user ->
                 user.getConsents().stream()
-                    .filter(consent -> consent.getId().equals(consentId))
+                    .filter(consent -> consent.getClientId().equals(clientId))
                     .findFirst());
   }
 

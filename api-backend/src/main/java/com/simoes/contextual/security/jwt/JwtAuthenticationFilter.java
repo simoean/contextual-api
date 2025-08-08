@@ -15,6 +15,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -50,12 +51,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
    */
   @Override
   protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull FilterChain filterChain)
       throws ServletException, IOException {
     try {
       String jwt = getJwtFromRequest(request);
 
-      // Check if a JWT exists and its signature is valid
+      // Check if a JWT exists and its signature is valid, and if no authentication is currently
+      // set.
       if (StringUtils.hasText(jwt)
           && jwtTokenProvider.validateToken(jwt)
           && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -65,34 +69,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         String userId = ((User) userDetails).getId();
 
-        // Check if the JWT contains a consent ID and retrieve the associated consent
-        String consentId = jwtTokenProvider.getConsentIdFromJwt(jwt);
-        Optional<Consent> optionalConsent = consentService.findConsentById(userId, consentId);
+        // Safely extract the consentId.
+        Optional<String> clientIdFromJwt = jwtTokenProvider.getClientIdFromJwt(jwt);
 
-        if (optionalConsent.isPresent()) {
-          Consent consent = optionalConsent.get();
-          // Perform the custom token validity check
-          Duration validityDuration =
-              Duration.ofMillis(consent.getTokenValidity().getExpirationInMilliseconds());
-          Instant tokenExpiration =
-              jwtTokenProvider.getIssuedAtFromJwt(jwt).toInstant().plus(validityDuration);
+        if (clientIdFromJwt.isPresent()) {
+          // This token is for client access and requires custom consent validation.
+          String clientId = clientIdFromJwt.get();
+          Optional<Consent> optionalConsent = consentService.findConsentById(userId, clientId);
 
-          if (Instant.now().isBefore(tokenExpiration)) {
-            // Token is still valid based on consent. Proceed with authentication.
-            UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+          if (optionalConsent.isPresent()) {
+            Consent consent = optionalConsent.get();
+            // Perform the custom token validity check
+            Duration validityDuration =
+                Duration.ofMillis(consent.getTokenValidity().getExpirationInMilliseconds());
+            Instant tokenExpiration =
+                jwtTokenProvider.getIssuedAtFromJwt(jwt).toInstant().plus(validityDuration);
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (Instant.now().isBefore(tokenExpiration)) {
+              // Token is still valid based on consent. Proceed with authentication.
+              authenticateUser(request, userDetails);
 
-            // Update the last accessed time on the consent record
-            consentService.auditAccess(userId, consentId);
+              // Update the last accessed time on the consent record
+              consentService.auditAccess(userId, consent.getId());
+            } else {
+              logger.warn(
+                  "Token for client ID {} has expired based on custom validity.", clientId);
+            }
           } else {
-            logger.warn("Token for consent ID {} has expired based on custom validity.", consentId);
+            // First time login from client, skip consent validation
+            authenticateUser(request, userDetails);
           }
         } else {
-          logger.warn("No consent found for the provided consent ID in the token.");
+          // This is a regular token without a consentId. Simply authenticate the user.
+          // The expiration is already handled by the `jwtTokenProvider.validateToken` call.
+          authenticateUser(request, userDetails);
         }
       }
     } catch (Exception ex) {
@@ -100,6 +110,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     filterChain.doFilter(request, response);
+  }
+
+  /**
+   * Authenticates the user by setting the authentication in the SecurityContext.
+   *
+   * @param request the HttpServletRequest
+   * @param userDetails the UserDetails object containing user information
+   */
+  private static void authenticateUser(HttpServletRequest request, UserDetails userDetails) {
+    UsernamePasswordAuthenticationToken authentication =
+        new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+    SecurityContextHolder.getContext().setAuthentication(authentication);
   }
 
   private String getJwtFromRequest(HttpServletRequest request) {
