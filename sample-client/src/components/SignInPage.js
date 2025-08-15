@@ -1,18 +1,33 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
+import {ExternalLink, XCircle, AlertCircle} from 'lucide-react';
 
 /**
  * SignInPage Component
- * This component provides a sign-in interface for users to log in directly or via a contextual identity API.
+ * This component provides a sign-in interface.
  *
  * @param {function} onLoginSuccess - Callback function to handle successful login.
+ * @param {object} currentClient - The currently selected client object.
+ * @param {function} loginUserApi - The API function to call the login endpoint.
  * @returns {JSX.Element}
  * @constructor
  */
-const SignInPage = ({onLoginSuccess}) => {
+const SignInPage = ({onLoginSuccess, currentClient, loginUserApi}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  const showMessage = (text, type = 'error') => {
+    setMessage({ text, type });
+  };
 
   /**
    * Function to open the login prompt in a popup window.
@@ -20,44 +35,38 @@ const SignInPage = ({onLoginSuccess}) => {
   const openLoginPrompt = () => {
 
     // Unique identifier for this client
-    const CLIENT_ID = "sample-client-app";
+    const CLIENT_ID = currentClient.id;
     const REDIRECT_URI = window.location.origin;
 
-    const loginPromptUrl = 'http://localhost:3000';
+    const loginPromptUrl = 'http://localhost:3000'; // Assuming the login-prompt is on this URL
     const loginPromptParams = `/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
 
-    // Define the desired width and height for the popup
     const width = 600;
     const height = 1000;
-
-    // Calculate the center position
     const left = (window.screen.width / 2) - (width / 2);
     const top = (window.screen.height / 2) - (height / 2);
-
-    // Construct the features string
     const features = `width=${width},height=${height},left=${left},top=${top},popup=yes,menubar=no,toolbar=no,location=no,status=no`;
 
-    console.log(`Opening login prompt at ${loginPromptUrl}`);
+    console.log(`Opening login prompt for client: ${CLIENT_ID} at ${loginPromptUrl}`);
     const loginWindow = window.open(loginPromptUrl + loginPromptParams, '_blank', features);
 
+    if (!loginWindow || loginWindow.closed || typeof loginWindow.closed === 'undefined') {
+      showMessage('Popup blocked! Please enable popups for this site.', 'error');
+      return;
+    }
 
-    // Add a listener for messages from the sign-in window
     const messageListener = (event) => {
-      console.log("sample-client SignInPage: Message received!");
-      console.log("sample-client SignInPage: Event origin:", event.origin);
-      console.log("sample-client SignInPage: Event data:", event.data);
+      console.log("SignInPage: Message received!");
 
-      // Check if the message comes from the expected origin
       if (event.origin !== loginPromptUrl) {
-        console.warn(`sample-client SignInPage: Message from unexpected origin: ${event.origin}`);
+        console.warn(`SignInPage: Message from unexpected origin: ${event.origin}`);
         return;
       }
 
-      // Check if the message indicates a successful login and contains the payload
       if (event.data && event.data.type === 'CONTEXT_AUTH_SUCCESS') {
         const { token, userId, username, selectedContext, selectedAttributes } = event.data.payload;
 
-        console.log("sample-client SignInPage: CONTEXT_AUTH_SUCCESS payload received");
+        console.log("SignInPage: CONTEXT_AUTH_SUCCESS payload received");
         onLoginSuccess({
           token,
           userId,
@@ -70,29 +79,46 @@ const SignInPage = ({onLoginSuccess}) => {
         }
         window.removeEventListener('message', messageListener);
       } else {
-        console.log("sample-client SignInPage: Message type not CONTEXT_AUTH_SUCCESS or payload missing.");
+        console.log("SignInPage: Message type not CONTEXT_AUTH_SUCCESS or payload missing.");
       }
     };
 
     window.addEventListener('message', messageListener);
   };
 
-  // Handle direct login (mock implementation)
-  const handleDirectLogin = async () => {
-    alert("Mock Direct Login: This would send a sign in request to the client!");
+  const handleDirectLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const payloadData = await loginUserApi(username, password, currentClient.id);
+      onLoginSuccess(payloadData);
+    } catch (err) {
+      setError('Login failed. Please check your credentials.');
+      console.error('Direct Login Error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle Google login (mock implementation)
   const handleGoogleLogin = () => {
-    alert("Mock Google Login: This would redirect to Google's OAuth flow!");
+    showMessage("Mock Google Login: This would redirect to Google's OAuth flow!");
   };
 
   return (
     <div className="sign-in-container">
-      <h2>Sign In to Our App</h2>
-
+      {message && (
+        <div className={`message-box message-box-${message.type}`}>
+          {message.type === 'error' ? <XCircle className="icon" /> : <AlertCircle className="icon" />}
+          <p>{message.text}</p>
+        </div>
+      )}
+      <div className="client-info">
+        {currentClient.icon}
+        <h3>Login to {currentClient.name}</h3>
+      </div>
       <form onSubmit={handleDirectLogin} className="direct-login-form">
-        <h3>Direct Login</h3>
         <div className="form-group">
           <label htmlFor="direct-username">Username:</label>
           <input
@@ -115,7 +141,7 @@ const SignInPage = ({onLoginSuccess}) => {
             className="form-input"
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="main-button">
           {loading ? 'Logging In...' : 'Login Directly'}
         </button>
         {error && <p className="error-message">{error}</p>}
@@ -123,9 +149,8 @@ const SignInPage = ({onLoginSuccess}) => {
 
       <div className="separator">OR</div>
 
-      <h3>Login via Provider</h3>
       <button onClick={openLoginPrompt} className="custom-login-button">
-        Login with Contextual Identity API
+        Login with Contextual Identity API <ExternalLink className="icon" />
       </button>
       <button onClick={handleGoogleLogin} className="mock-google-button">
         Login with Google (Mock)
