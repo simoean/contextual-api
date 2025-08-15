@@ -4,7 +4,6 @@ import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -108,63 +107,25 @@ public class UserService {
 
     user.setContexts(Arrays.asList(personalContext, professionalContext, academicContext));
 
-    // Create OOTB Attributes
+    // Create OOTB username Attribute
     // Attributes will be private by default as they contain sensitive information
     IdentityAttribute firstNameAttr =
         IdentityAttribute.builder()
             .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
             .userId(userId)
-            .name("First Name")
-            .value("")
+            .name("Username")
+            .value(user.getUsername())
             .visible(true)
             .contextIds(new ArrayList<>())
             .build();
-
-    IdentityAttribute lastNameAttr =
-        IdentityAttribute.builder()
-            .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
-            .userId(userId)
-            .name("Last Name")
-            .value("")
-            .visible(true)
-            .contextIds(new ArrayList<>())
-            .build();
-
-    IdentityAttribute emailAttr =
-        IdentityAttribute.builder()
-            .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
-            .userId(userId)
-            .name("Email")
-            .value("")
-            .visible(true)
-            .contextIds(new ArrayList<>())
-            .build();
-
-    user.setAttributes(Arrays.asList(firstNameAttr, lastNameAttr, emailAttr));
 
     // Associate Attributes with Contexts
-    // Personal Context: FN, LN, Email
     firstNameAttr.getContextIds().add(personalContext.getId());
-    lastNameAttr.getContextIds().add(personalContext.getId());
-    emailAttr.getContextIds().add(personalContext.getId());
-
-    // Professional Context: FN, LN
     firstNameAttr.getContextIds().add(professionalContext.getId());
-    lastNameAttr.getContextIds().add(professionalContext.getId());
-
-    // Academic Context: FN, LN
     firstNameAttr.getContextIds().add(academicContext.getId());
-    lastNameAttr.getContextIds().add(academicContext.getId());
-
-    // Ensure no duplicate context IDs in attribute's contextIds list
-    firstNameAttr.setContextIds(
-        firstNameAttr.getContextIds().stream().distinct().collect(Collectors.toList()));
-    lastNameAttr.setContextIds(
-        lastNameAttr.getContextIds().stream().distinct().collect(Collectors.toList()));
-    emailAttr.setContextIds(
-        emailAttr.getContextIds().stream().distinct().collect(Collectors.toList()));
 
     // Save the user with populated contexts and attributes
+    user.setAttributes(Collections.singletonList(firstNameAttr));
     userRepository.save(user);
     log.info("Default contexts and attributes provisioned for user: {}", user.getUsername());
   }
@@ -356,6 +317,67 @@ public class UserService {
               return true;
             })
         .orElse(false);
+  }
+
+  /**
+   * Saves a list of identity attributes for a user in a single, bulk operation. This method handles
+   * both new and existing attributes by updating the in-memory user object and then saving the
+   * entire entity once.
+   *
+   * @param userId The ID of the user.
+   * @param attributes The list of attributes to save.
+   * @return The list of saved attributes.
+   */
+  public List<IdentityAttribute> saveAttributesBulk(
+      String userId, List<IdentityAttribute> attributes) {
+    // Find the user or throw an exception if not found.
+    // This ensures we always have a user object to work with.
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+
+    // Create a mutable copy of the existing attributes for easier management.
+    List<IdentityAttribute> userAttributes = new ArrayList<>(user.getAttributes());
+
+    // Iterate through the attributes to be saved.
+    attributes.forEach(
+        attributeToSave -> {
+          // Check if the attribute already exists by ID.
+          Optional<IdentityAttribute> existingAttributeOpt =
+              userAttributes.stream()
+                  .filter(
+                      existingAttr ->
+                          attributeToSave.getId() != null
+                              && existingAttr.getId().equals(attributeToSave.getId()))
+                  .findFirst();
+
+          if (existingAttributeOpt.isPresent()) {
+            // If the attribute exists, update its values.
+            IdentityAttribute existingAttribute = existingAttributeOpt.get();
+            existingAttribute.setValue(attributeToSave.getValue());
+            existingAttribute.setContextIds(attributeToSave.getContextIds());
+          } else {
+            // If it's a new attribute, give it a new ID and add it to the list.
+            if (attributeToSave.getId() == null || attributeToSave.getId().isEmpty()) {
+              String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
+              attributeToSave.setId(newId);
+            }
+            attributeToSave.setUserId(userId);
+
+            if (attributeToSave.getContextIds() == null) {
+              attributeToSave.setContextIds(new ArrayList<>());
+            }
+            userAttributes.add(attributeToSave);
+          }
+        });
+
+    // Replace the old list with the newly updated list.
+    user.setAttributes(userAttributes);
+
+    // Save the user entity.
+    userRepository.save(user);
+    return user.getAttributes();
   }
 
   /**

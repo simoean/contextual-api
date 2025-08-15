@@ -103,4 +103,19 @@ public class AttributeController {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
   }
+
+  /**
+   * Endpoint to save a list of attributes for the authenticated user. This method will either
+   * create a new attribute or update an existing one based on the attribute's ID.
+   *
+   * @param attributes The list of IdentityAttribute objects to save.
+   * @return ResponseEntity with the list of saved IdentityAttribute objects.
+   */
+  @PostMapping("/bulk")
+  public ResponseEntity<List<IdentityAttribute>> saveAttributes(
+          @RequestBody List<IdentityAttribute> attributes) {
+    List<IdentityAttribute> savedAttributes =
+            attributeService.saveAttributes(userUtil.getAuthenticatedUserId(), attributes);
+    return ResponseEntity.status(HttpStatus.OK).body(savedAttributes);
+  }
 }

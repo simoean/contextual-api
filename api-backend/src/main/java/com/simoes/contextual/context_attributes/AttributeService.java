@@ -1,6 +1,8 @@
 package com.simoes.contextual.context_attributes;
 
 import com.simoes.contextual.user.UserService;
+
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -53,5 +55,17 @@ class AttributeService {
   boolean deleteAttribute(String userId, String attributeId) {
     // Delegate to UserService's method
     return userService.deleteAttribute(userId, attributeId);
+  }
+
+  /**
+   * Saves a list of attributes for a given user using a bulk operation.
+   * This method delegates the entire list to the UserService to ensure optimized persistence.
+   *
+   * @param userId The ID of the user.
+   * @param attributes The list of attributes to save.
+   * @return The list of saved attributes.
+   */
+  public List<IdentityAttribute> saveAttributes(String userId, List<IdentityAttribute> attributes) {
+    return userService.saveAttributesBulk(userId, attributes);
   }
 }
