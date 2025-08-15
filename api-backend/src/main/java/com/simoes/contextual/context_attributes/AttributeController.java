@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
  * managing attributes associated with the authenticated user.
  */
 @RestController
-@RequestMapping("/api/users/me/attributes")
+@RequestMapping("/api/v1/users/me/attributes")
 @RequiredArgsConstructor
 public class AttributeController {
 

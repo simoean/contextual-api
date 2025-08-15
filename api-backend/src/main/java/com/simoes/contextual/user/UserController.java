@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  * and Attribute management endpoints have been moved to dedicated controllers.
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 

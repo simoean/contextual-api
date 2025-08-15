@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
  * associated with the authenticated user.
  */
 @RestController
-@RequestMapping("/api/users/me/consents")
+@RequestMapping("/api/v1/users/me/consents")
 @RequiredArgsConstructor
 public class ConsentController {
 
