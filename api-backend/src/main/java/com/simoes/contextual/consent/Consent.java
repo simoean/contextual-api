@@ -3,6 +3,7 @@ package com.simoes.contextual.consent;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -23,6 +24,6 @@ public class Consent {
   private List<String> sharedAttributes;
   private Date createdAt;
   private Date lastUpdatedAt;
-  private List<Date> accessedAt;
+  private List<Date> accessedAt = Collections.emptyList();
   private TokenValidity tokenValidity;
 }

@@ -1,12 +1,18 @@
 package com.simoes.contextual.auth;
 
+import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.security.jwt.JwtTokenProvider;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
 import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,14 +20,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder; // <--- ADD THIS IMPORT
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Collections;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Controller for handling authentication requests. This controller provides an endpoint for user
@@ -75,9 +77,14 @@ public class AuthController {
       String jwt;
       // Check if a clientId is provided; if so, generate a consent token
       if (StringUtils.hasText(loginRequest.getClientId())) {
-        // Here, you might fetch the user's preferred validity from a consent management screen
-        // For now, we'll use a default of ONE_DAY as per your previous code
-        jwt = jwtTokenProvider.generateConsentToken(authentication, loginRequest.getClientId(), TokenValidity.ONE_DAY);
+        TokenValidity validity =
+            userService
+                .findConsentById(authenticatedUser.getId(), loginRequest.getClientId())
+                .map(Consent::getTokenValidity)
+                .orElse(TokenValidity.ONE_DAY);
+        jwt =
+            jwtTokenProvider.generateConsentToken(
+                authentication, loginRequest.getClientId(), validity);
       } else {
         // If no clientId, generate a regular token
         jwt = jwtTokenProvider.generateDashboardToken(authentication);
@@ -105,6 +112,69 @@ public class AuthController {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(AuthResponse.builder().message(INTERNAL_ERROR).build());
     }
+  }
+
+  /**
+   * Endpoint to validate a token for silent sign-in. This method expects a Bearer token in the
+   * Authorization header. It validates the token's signature and expiration. If the token is valid,
+   * it returns the user's information and a new token.
+   *
+   * @param authorizationHeader The Authorization header containing the token.
+   * @return A ResponseEntity with user data and a new token on success, or an error on failure.
+   */
+  @GetMapping("/validate-token")
+  public ResponseEntity<?> validateToken(
+      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+    if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+      return new ResponseEntity<>(
+          "Authorization header is missing or malformed.", HttpStatus.UNAUTHORIZED);
+    }
+
+    // Extract the token from the "Bearer " prefix
+    String token = authorizationHeader.substring(7);
+
+    // Validate the token's signature and expiration
+    if (jwtTokenProvider.validateToken(token)) {
+      try {
+        // Assuming the token contains the username
+        String username = jwtTokenProvider.getUsernameFromJwt(token);
+        String clientId = jwtTokenProvider.getClientIdFromJwt(token).orElse(null);
+        Optional<User> optionalUser = userService.findUserByUsername(username);
+
+        if (optionalUser.isPresent()) {
+          User user = optionalUser.get();
+          // To generate a new token, we need an Authentication object.
+          Authentication authentication =
+              new UsernamePasswordAuthenticationToken(
+                  user, null, ((UserDetails) user).getAuthorities());
+
+          TokenValidity tokenValidity =
+              user.getConsents().stream()
+                  .filter(consent -> consent.getClientId().equals(clientId))
+                  .findFirst()
+                  .map(Consent::getTokenValidity)
+                  .orElse(TokenValidity.ONE_DAY);
+
+          // Generate a new dashboard token for the user to extend the session
+          String newToken =
+              jwtTokenProvider.generateConsentToken(authentication, clientId, tokenValidity);
+
+          Map<String, Object> response = new HashMap<>();
+          response.put("token", newToken);
+          response.put("userId", user.getId());
+          response.put("username", user.getUsername());
+
+          return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+      } catch (Exception e) {
+        // Catch any exceptions during token parsing or user retrieval
+        log.error("Error during token validation: {}", e.getMessage());
+        return new ResponseEntity<>("Invalid token or user not found.", HttpStatus.UNAUTHORIZED);
+      }
+    }
+
+    // Token is invalid (expired, invalid signature, etc.)
+    return new ResponseEntity<>("Token is expired or invalid.", HttpStatus.UNAUTHORIZED);
   }
 
   /**

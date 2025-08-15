@@ -404,6 +404,7 @@ public class UserService {
               if (existingConsent.isPresent()) {
                 Consent consent = existingConsent.get();
                 consent.setSharedAttributes(newConsent.getSharedAttributes());
+                consent.setTokenValidity(newConsent.getTokenValidity());
                 consent.setLastUpdatedAt(new Date());
               } else {
                 consents.add(

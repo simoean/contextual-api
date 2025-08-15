@@ -38,59 +38,60 @@ public class JwtTokenProvider {
     User user = (User) authentication.getPrincipal();
 
     String roles =
-            user.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.joining(","));
+        user.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.joining(","));
 
     Date now = new Date();
     long expirationMillis = now.getTime() + TokenValidity.ONE_DAY.getExpirationInMilliseconds();
 
     return Jwts.builder()
-            .claims()
-            .id(user.getId())
-            .subject(user.getUsername())
-            .issuedAt(now)
-            .expiration(new Date(expirationMillis))
-            .add("roles", roles)
-            .and()
-            .signWith(key())
-            .compact();
+        .claims()
+        .id(user.getId())
+        .subject(user.getUsername())
+        .issuedAt(now)
+        .expiration(new Date(expirationMillis))
+        .add("roles", roles)
+        .and()
+        .signWith(key())
+        .compact();
   }
 
   /**
-   * Generates a JWT token for a specific consent, with a custom expiration based on the
-   * user's selection.
+   * Generates a JWT token for a specific consent, with a custom expiration based on the user's
+   * selection.
    *
    * @param authentication The authentication object containing user details.
    * @param clientId The ID of the client app.
    * @param validity The token validity period chosen by the user.
    * @return a signed JWT token as a String.
    */
-  public String generateConsentToken(Authentication authentication, String clientId, TokenValidity validity) {
+  public String generateConsentToken(
+      Authentication authentication, String clientId, TokenValidity validity) {
     // User class implements UserDetails
     User user = (User) authentication.getPrincipal();
 
     // Get roles as a comma-separated string for the custom claim
     String roles =
-            user.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.joining(","));
+        user.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.joining(","));
 
     // Set the issued at and expiration dates
     Date now = new Date();
     long expirationMillis = validity.getExpirationInMilliseconds();
 
     return Jwts.builder()
-            .claims()
-            .id(user.getId())
-            .subject(user.getUsername())
-            .issuedAt(now)
-            .expiration(new Date(now.getTime() + expirationMillis))
-            .add("clientId", clientId)
-            .add("roles", roles)
-            .and()
-            .signWith(key())
-            .compact();
+        .claims()
+        .id(user.getId())
+        .subject(user.getUsername())
+        .issuedAt(now)
+        .expiration(new Date(now.getTime() + expirationMillis))
+        .add("clientId", clientId)
+        .add("roles", roles)
+        .and()
+        .signWith(key())
+        .compact();
   }
 
   private Key key() {
@@ -105,11 +106,11 @@ public class JwtTokenProvider {
    */
   public Date getIssuedAtFromJwt(String token) {
     return Jwts.parser()
-            .verifyWith((SecretKey) key())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload()
-            .getIssuedAt();
+        .verifyWith((SecretKey) key())
+        .build()
+        .parseSignedClaims(token)
+        .getPayload()
+        .getIssuedAt();
   }
 
   /**
@@ -120,11 +121,11 @@ public class JwtTokenProvider {
    */
   public String getUsernameFromJwt(String token) {
     return Jwts.parser()
-            .verifyWith((SecretKey) key())
-            .build()
-            .parseSignedClaims(token)
-            .getPayload()
-            .getSubject();
+        .verifyWith((SecretKey) key())
+        .build()
+        .parseSignedClaims(token)
+        .getPayload()
+        .getSubject();
   }
 
   /**
@@ -135,11 +136,8 @@ public class JwtTokenProvider {
    */
   public Optional<String> getClientIdFromJwt(String token) {
     try {
-      Claims claims = Jwts.parser()
-              .verifyWith((SecretKey) key())
-              .build()
-              .parseSignedClaims(token)
-              .getPayload();
+      Claims claims =
+          Jwts.parser().verifyWith((SecretKey) key()).build().parseSignedClaims(token).getPayload();
       return Optional.ofNullable(claims.get("clientId", String.class));
     } catch (JwtException | IllegalArgumentException e) {
       log.debug("JWT does not contain a clientId claim.", e);
