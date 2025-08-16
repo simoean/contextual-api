@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   Image,
   Heading,
   Spinner,
+  Tooltip,
   Alert,
   AlertIcon,
   AlertTitle,
@@ -24,20 +25,23 @@ import {
 import { MoonIcon, SunIcon } from '@chakra-ui/icons';
 import { GiAwareness } from "react-icons/gi";
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarLeftExpand } from 'react-icons/tb';
-import { FaTags, FaSignOutAlt, FaRedoAlt } from 'react-icons/fa';
+import { FaTags, FaSignOutAlt, FaRedoAlt, FaHandshake, FaLink } from 'react-icons/fa';
 
 import logo from 'assets/images/logo.png';
 
 import { useIdentityStore } from 'features/dashboard/store/identityStore';
+import { useAuthenticationStore } from "features/auth/store/authenticationStore";
 
 import ContextsContent from 'features/dashboard/components/ContextsContent';
 import AttributesContent from 'features/dashboard/components/AttributesContent';
-import {useAuthenticationStore} from "features/auth/store/authenticationStore";
+import ConsentsContent from 'features/dashboard/components/ConsentsContent';
+import ConnectionsContent from 'features/dashboard/components/ConnectionsContent';
 
 const DashboardPage = () => {
 
   // Hooks for navigation and authentication
   const navigate = useNavigate();
+  const location = useLocation();
   const { colorMode, toggleColorMode } = useColorMode();
 
   // Authentication state and actions from the AuthContext
@@ -46,6 +50,7 @@ const DashboardPage = () => {
 
   // Local state for sidebar and current page
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  // Initialize currentPage based on the URL path.
   const [currentPage, setCurrentPage] = useState('contexts');
 
   // Color mode values for styling
@@ -67,6 +72,15 @@ const DashboardPage = () => {
   const sidebarCollapsedWidth = '70px';
   const sidebarExpandedWidth = '220px';
 
+  // Use useMemo to ensure navItems is only created once,
+  // preventing unnecessary re-renders of the useEffect hook.
+  const navItems = useMemo(() => [
+    { id: 'contexts', label: 'Contexts', icon: GiAwareness },
+    { id: 'attributes', label: 'Attributes', icon: FaTags },
+    { id: 'consents', label: 'Consents', icon: FaHandshake },
+    { id: 'connections', label: 'Connections', icon: FaLink },
+  ], []);
+
   /**
    * Effect hook to fetch identity data.
    * This now explicitly waits for authentication to be confirmed and token to be present.
@@ -82,6 +96,25 @@ const DashboardPage = () => {
   }, [accessToken, isAuthenticated, authLoading, fetchIdentityData, contexts.length, attributes.length, storeError]);
 
   /**
+   * Effect hook to update the current page based on the URL.
+   */
+  useEffect(() => {
+    // Get the last part of the pathname and use it to set the current page.
+    // Example: '/dashboard/connections' -> 'connections'
+    const pathSegments = location.pathname.split('/');
+    const lastSegment = pathSegments[pathSegments.length - 1];
+
+    // Ensure the segment is one of our valid page IDs before setting the state.
+    const validPages = navItems.map(item => item.id);
+    if (validPages.includes(lastSegment)) {
+      setCurrentPage(lastSegment);
+    } else {
+      // Default to 'contexts' if the URL doesn't match a known page.
+      setCurrentPage('contexts');
+    }
+  }, [navItems, location.pathname]);
+
+  /**
    * Effect hook to handle redirection for unauthenticated users.
    */
   useEffect(() => {
@@ -90,11 +123,6 @@ const DashboardPage = () => {
       navigate('/auth');
     }
   }, [authLoading, isAuthenticated, accessToken, navigate]);
-
-  const navItems = [
-    { id: 'contexts', label: 'Contexts', icon: GiAwareness },
-    { id: 'attributes', label: 'Attributes', icon: FaTags },
-  ];
 
   // Function to retry fetching data (for the "Try Again" button on error screen)
   const handleRetryFetch = () => {
@@ -106,7 +134,9 @@ const DashboardPage = () => {
     }
   };
 
-  // --- Conditional Renders for Page State ---
+  const handleSidebarClick = (item) => {
+    navigate('/dashboard/' + item.id);
+  }
 
   // Displays a full-page spinner during authentication or initial data loading
   if (authLoading || dataLoading) {
@@ -217,21 +247,23 @@ const DashboardPage = () => {
               Hello, {userInfo.username}!
             </Text>
           )}
-          <IconButton
-            aria-label="Toggle color mode"
-            icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
-            onClick={toggleColorMode}
-            size="md"
-            isRound={true}
-          />
-          <IconButton
-            aria-label="Sign Out"
-            icon={<FaSignOutAlt />}
-            data-testid="sign-out-button"
-            onClick={logout}
-            size="md"
-            isRound={true}
-          />
+          <Tooltip label="Toggle Color Mode">
+            <IconButton
+              aria-label="Toggle color mode"
+              icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+              onClick={toggleColorMode}
+              size="md"
+            />
+          </Tooltip>
+          <Tooltip label="Sign Out">
+            <IconButton
+              aria-label="Sign Out"
+              icon={<FaSignOutAlt />}
+              data-testid="sign-out-button"
+              onClick={logout}
+              size="md"
+            />
+          </Tooltip>
         </HStack>
       </HStack>
 
@@ -258,39 +290,42 @@ const DashboardPage = () => {
           overflowY="auto"
         >
           {/* Sidebar Toggle Button */}
-          <IconButton
-            aria-label={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-            icon={isSidebarExpanded ? <TbLayoutSidebarLeftCollapse /> : <TbLayoutSidebarLeftExpand />}
-            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-            size="md"
-            isRound={true}
-            mb={4}
-            alignSelf={isSidebarExpanded ? 'flex-end' : 'center'}
-            mr={isSidebarExpanded ? 4 : 0}
-          />
-
+          <Tooltip label={isSidebarExpanded ? "Collapse" : "Expand"}>
+            <IconButton
+              aria-label={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+              icon={isSidebarExpanded ? <TbLayoutSidebarLeftCollapse /> : <TbLayoutSidebarLeftExpand />}
+              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+              size="md"
+              isRound={true}
+              mb={4}
+              alignSelf={isSidebarExpanded ? 'flex-end' : 'center'}
+              mr={isSidebarExpanded ? 4 : 0}
+            />
+          </Tooltip>
           {/* Navigation Items */}
           {navItems.map((item) => (
-            <Button
-              key={item.id}
-              data-testid={`nav-${item.id}`}
-              variant="ghost"
-              onClick={() => setCurrentPage(item.id)}
-              w="full"
-              justifyContent={isSidebarExpanded ? 'flex-start' : 'center'}
-              px={isSidebarExpanded ? 4 : 0}
-              py={isSidebarExpanded ? 3 : 2}
-              mb={2}
-              color={sidebarTextColor}
-              _hover={{ bg: sidebarHoverBg }}
-              _active={{ bg: sidebarActiveBg }}
-              isActive={currentPage === item.id}
-              leftIcon={
-                <Box as={item.icon} boxSize={isSidebarExpanded ? '20px' : '24px'} color={sidebarIconColor} />
-              }
-            >
-              {isSidebarExpanded && <Text ml={2}>{item.label}</Text>}
-            </Button>
+            <Tooltip label={isSidebarExpanded ? "" : item.label}>
+              <Button
+                key={item.id}
+                data-testid={`nav-${item.id}`}
+                variant="ghost"
+                onClick={() => handleSidebarClick(item)}
+                w="full"
+                justifyContent={isSidebarExpanded ? 'flex-start' : 'center'}
+                px={isSidebarExpanded ? 4 : 0}
+                py={isSidebarExpanded ? 3 : 2}
+                mb={2}
+                color={sidebarTextColor}
+                _hover={{ bg: sidebarHoverBg }}
+                _active={{ bg: sidebarActiveBg }}
+                isActive={currentPage === item.id}
+                leftIcon={
+                  <Box as={item.icon} boxSize={isSidebarExpanded ? '20px' : '24px'} color={sidebarIconColor} />
+                }
+              >
+                {isSidebarExpanded && <Text ml={2}>{item.label}</Text>}
+              </Button>
+            </Tooltip>
           ))}
         </VStack>
 
@@ -349,6 +384,17 @@ const DashboardPage = () => {
                     fetchIdentityData={fetchIdentityData}
                     setCurrentPage={setCurrentPage}
                   />
+                );
+              case 'consents':
+                return (
+                  <ConsentsContent
+                    fetchIdentityData={fetchIdentityData}
+                    attributes={attributes}
+                  />
+                );
+              case 'connections':
+                return (
+                  <ConnectionsContent />
                 );
               default:
                 return (

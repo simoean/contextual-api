@@ -11,6 +11,7 @@ import {
   HStack,
   Heading,
   Text,
+  Tooltip,
   useColorMode,
   useColorModeValue,
   useToast,
@@ -24,6 +25,7 @@ import logo from 'assets/images/logo.png';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 import useAuthParams from 'shared/hooks/useAuthParams';
+import {fetchConsents} from 'shared/api/authService';
 
 /**
  * SignInPage Component
@@ -48,7 +50,14 @@ const SignInPage = () => {
   const {clientId, redirectUri, isClientFlow} = useAuthParams();
 
   // Get the login and register functions from the AuthContext
-  const {login, isAuthenticated} = useAuthenticationStore();
+  const {
+    login,
+    isAuthenticated,
+    storedClientId,
+    setAuthFlowParams,
+    accessToken,
+    userInfo,
+  } = useAuthenticationStore();
 
   // Color mode and styling
   const {colorMode, toggleColorMode} = useColorMode();
@@ -57,19 +66,49 @@ const SignInPage = () => {
   const isDashboardDirectAccess = useMemo(() => !isClientFlow, [isClientFlow]);
 
   /**
-   * Effect to check if the user is already authenticated
+   * Effect to check if the user is already authenticated.
+   * This handles the redirect logic on page load.
    */
   useEffect(() => {
-    // If user is already authenticated, redirect them
-    if (isAuthenticated) {
-      // Determine redirection based on isClientFlow, similar to successful login
-      if (isClientFlow) {
-        navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
-      } else {
+    const handleRedirect = async () => {
+      // If user is already authenticated, handle the redirect
+      if (isAuthenticated && isClientFlow && accessToken) {
+        try {
+          // Fetch all user consents
+          const userConsents = await fetchConsents(accessToken);
+          // Check if a consent exists for the current client
+          const hasConsent = userConsents.some(consent => consent.clientId === clientId);
+
+          if (hasConsent && window.opener && redirectUri) {
+            window.opener.postMessage({
+              type: 'CONTEXT_AUTH_SUCCESS',
+              payload: {
+                token: accessToken,
+                userId: userInfo?.userId,
+                username: userInfo?.username
+              }
+            }, redirectUri);
+            window.close();
+          } else {
+            navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+          }
+        } catch (error) {
+          console.error("Failed to check for existing consent:", error);
+          // If the check fails, redirect to the context selection page as a safe fallback
+          navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+        }
+      } else if (isAuthenticated && !isClientFlow) {
         navigate('/dashboard');
       }
-    }
-  }, [isAuthenticated, navigate, isClientFlow, clientId, redirectUri]);
+
+      // Store the auth parameters if they exist in the URL
+      if (isClientFlow && clientId) {
+        setAuthFlowParams(clientId);
+      }
+    };
+
+    handleRedirect();
+  }, [isAuthenticated, navigate, isClientFlow, clientId, redirectUri, setAuthFlowParams, accessToken, userInfo]);
 
   /**
    * Handles the sign-in process
@@ -83,15 +122,37 @@ const SignInPage = () => {
     setLoading(true);
 
     try {
-      await login(username, password);
+      const loginClientId = storedClientId || clientId;
+
+      await login(username, password, loginClientId);
 
       toast({
         title: "Login Successful!", description: "You have been successfully logged in.",
         status: "success", duration: 3000, isClosable: true, position: "bottom"
       });
 
-      if (isClientFlow) {
-        navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+      if (isClientFlow && accessToken) {
+        try {
+          const userConsents = await fetchConsents(accessToken);
+          const hasConsent = userConsents.some(consent => consent.clientId === clientId);
+          if (hasConsent && window.opener && redirectUri) {
+            window.opener.postMessage({
+              type: 'CONTEXT_AUTH_SUCCESS',
+              payload: {
+                token: accessToken,
+                userId: userInfo?.userId,
+                username: userInfo?.username
+              }
+            }, redirectUri);
+            window.close();
+          } else {
+            navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+          }
+        } catch (error) {
+          console.error("Failed to check for existing consent:", error);
+          // Fallback to the context selection page if the check fails
+          navigate(`/auth/context?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+        }
       } else {
         navigate('/dashboard');
       }
@@ -143,14 +204,30 @@ const SignInPage = () => {
 
   // Render the SignInPage component
   return (
-    <Container centerContent minH="100vh" minW="100vw" variant="fullPageBackground" py={12}>
-      <Stack spacing={8} mx={'auto'} maxW={'lg'} w={'90%'} py={12} px={6} bg={cardBg}
-             boxShadow={'lg'} rounded={'lg'} borderWidth="1px" borderColor={cardBorderColor}
-             position="relative">
+    <Container centerContent minH="100vh" minW="100vw" variant="fullPageBackground" py={8}>
+      <Stack
+        spacing={8}
+        mx={'auto'}
+        maxW={isClientFlow ? 'lg' : '600px'}
+        w={isClientFlow ? '90%' : '600px'}
+        py={12}
+        px={6}
+        bg={cardBg}
+        boxShadow={'lg'}
+        rounded={'lg'}
+        borderWidth="1px"
+        borderColor={cardBorderColor}
+        position="relative"
+      >
         <Box position="absolute" top={4} right={4}>
-          <IconButton aria-label="Toggle color mode"
-                      icon={colorMode === 'light' ? <MoonIcon/> : <SunIcon/>}
-                      onClick={toggleColorMode} size="md"/>
+          <Tooltip label="Toggle Color Mode">
+            <IconButton
+              aria-label="Toggle color mode"
+              icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+              onClick={toggleColorMode}
+              size="md"
+            />
+          </Tooltip>
         </Box>
         <Stack align={'center'} my={4}>
           <Image src={logo} alt="Contextual Identity API" boxSize="150px" mb={8} borderRadius="15%" p={2}/>

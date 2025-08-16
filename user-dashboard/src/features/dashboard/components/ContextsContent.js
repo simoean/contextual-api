@@ -270,9 +270,14 @@ const ContextsContent = ({
                 onClick={() => handleContextSelect(context)}
               >
                 <VStack align="flex-start" spacing={3} h="full">
-                  <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={1}>
-                    {context.name}
-                  </Text>
+                  <HStack flexWrap="wrap">
+                    <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={1}>
+                      Context:
+                    </Text>
+                    <Text fontSize="xl" color={textColor} noOfLines={1}>
+                      {context.name}
+                    </Text>
+                  </HStack>
                   <Text fontSize="sm" color="gray.500" flexGrow={1}>
                     {context.description || 'No description provided.'}
                   </Text>

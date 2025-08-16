@@ -10,6 +10,8 @@ import DashboardPage from 'features/dashboard/pages/DashboardPage';
 import SignInPage from 'features/auth/pages/SignInPage';
 import ContextSelectionPage from 'features/auth/pages/ContextSelectionPage';
 import SignUpPage from 'features/auth/pages/SignUpPage';
+import ConnectDatasourcesPage from "features/auth/pages/ConnectDatasourcesPage";
+import AuthCallbackPage from 'features/auth/pages/AuthCallbackPage';
 
 /**
  * PrivateRoute Component
@@ -81,6 +83,10 @@ const App = () => {
           <Route path="context" element={<ContextSelectionPage/>}/>
           {/* Nested route for user sign-up */}
           <Route path="signup" element={<SignUpPage/>}/>
+          {/* Nested route for user data source connections */}
+          <Route path="connect" element={<ConnectDatasourcesPage/>}/>
+          {/* Nested route for handling OAuth callbacks */}
+          <Route path="callback" element={<AuthCallbackPage />} />
         </Route>
 
         {/* Protected dashboard route */}

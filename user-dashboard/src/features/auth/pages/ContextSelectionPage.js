@@ -1,24 +1,25 @@
-import React, {useEffect, useMemo} from 'react';
-import {useNavigate, useLocation} from 'react-router-dom';
+import React, {useEffect, useMemo, useState} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
 
 import {
-  Box,
-  Button,
-  Container,
-  Heading,
-  Text,
-  VStack,
-  HStack,
-  Image,
-  IconButton,
-  useColorMode,
-  useColorModeValue,
-  Spinner,
   Alert,
   AlertIcon,
+  Box,
+  Button,
   Checkbox,
-  useToast,
+  Container,
   Flex,
+  Heading,
+  HStack,
+  IconButton,
+  Image,
+  Tooltip,
+  Spinner,
+  Text,
+  useColorMode,
+  useColorModeValue,
+  useToast,
+  VStack,
 } from '@chakra-ui/react';
 
 import {MoonIcon, SunIcon} from '@chakra-ui/icons';
@@ -26,6 +27,11 @@ import logo from 'assets/images/logo.png';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 import {useIdentityStore} from 'features/dashboard/store/identityStore';
+
+import useAuthParams from 'shared/hooks/useAuthParams';
+import {truncateText} from "shared/util/text";
+
+import {recordConsent, fetchConsents} from 'shared/api/authService';
 
 /**
  * Context Selection Page
@@ -61,6 +67,10 @@ const ContextSelectionPage = () => {
 
   const {colorMode, toggleColorMode} = useColorMode();
 
+  // Local state for API call loading and error
+  const [isSavingConsent, setIsSavingConsent] = useState(false);
+  const [userConsents, setUserConsents] = useState([]);
+
   // Corrected color definitions for header/footer and main card background
   const headerFooterBg = useColorModeValue('gray.100', 'gray.700');
   const headerFooterBorderColor = useColorModeValue('gray.200', 'gray.600');
@@ -73,11 +83,9 @@ const ContextSelectionPage = () => {
 
   const popupWidth = "600px";
 
-  // Extract the redirect_uri from the URL query parameters
-  const redirectUri = useMemo(() => {
-    const params = new URLSearchParams(location.search);
-    return params.get('redirect_uri');
-  }, [location.search]);
+  // Use the existing hook to get auth parameters
+  const {clientId, redirectUri} = useAuthParams();
+
 
   /**
    * Fetch Identity Data
@@ -88,6 +96,23 @@ const ContextSelectionPage = () => {
       fetchIdentityData(accessToken);
     }
   }, [accessToken, isAuthenticated, authLoading, fetchIdentityData, contexts.length, attributes.length]);
+
+  /**
+   * Fetch user consents on component load
+   */
+  useEffect(() => {
+    const fetchUserConsents = async () => {
+      if (accessToken) {
+        try {
+          const consents = await fetchConsents(accessToken);
+          setUserConsents(consents);
+        } catch (error) {
+          console.error("Failed to fetch user consents:", error);
+        }
+      }
+    };
+    fetchUserConsents();
+  }, [accessToken]);
 
   /**
    * Handle Authentication Status
@@ -120,18 +145,18 @@ const ContextSelectionPage = () => {
   useEffect(() => {
     if (selectedContextId) {
       const initialSelected = filteredAttributes.map(attr => attr.id);
-      const currentSelectedAttributeIds = selectedAttributeIds;
-
-      if (JSON.stringify(initialSelected.sort()) !== JSON.stringify(currentSelectedAttributeIds.sort())) {
+      // The dependency `selectedAttributeIds` is needed here to prevent infinite loops.
+      // We only want to update the state if it's different.
+      const areArraysEqual = initialSelected.length === selectedAttributeIds.length && initialSelected.every(id => selectedAttributeIds.includes(id));
+      if (!areArraysEqual) {
         setSelectedAttributeIds(initialSelected);
       }
     } else {
-      const currentSelectedAttributeIds = selectedAttributeIds;
-      if (currentSelectedAttributeIds.length > 0) {
+      if (selectedAttributeIds.length > 0) {
         setSelectedAttributeIds([]);
       }
     }
-  }, [selectedContextId, filteredAttributes, setSelectedAttributeIds]);
+  }, [selectedContextId, filteredAttributes, selectedAttributeIds, setSelectedAttributeIds]);
 
   /**
    * Handle Context Button Click
@@ -160,36 +185,67 @@ const ContextSelectionPage = () => {
 
   /**
    * Handle Confirm Selection
+   * New logic: Instead of sending data directly, it calls the backend to record consent.
    */
-  const handleConfirmSelection = () => {
-    const finalSelectedContext = contexts.find(ctx => ctx.id === selectedContextId);
-    const finalSelectedAttributes = filteredAttributes.filter(attr =>
-      selectedAttributeIds.includes(attr.id)
-    );
-
-    const authData = {
-      token: accessToken,
-      userId: userInfo?.userId,
-      username: userInfo?.username,
-      selectedContext: finalSelectedContext,
-      selectedAttributes: finalSelectedAttributes,
-    };
-
-    if (window.opener && redirectUri) {
-      window.opener.postMessage({type: 'CONTEXT_AUTH_SUCCESS', payload: authData}, redirectUri);
-      window.close();
-    } else {
-      console.warn("No opener window found. Cannot send authentication data.");
-      console.log("AuthData payload:", authData);
+  const handleConfirmSelection = async () => {
+    // Check if a client ID is present; it's required for consent
+    if (!clientId) {
       toast({
-        title: "Authentication data prepared.",
-        description: "However, the popup window could not communicate back to the opener.",
-        status: "info",
+        title: "Error",
+        description: "Client ID not found in URL. Cannot record consent.",
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
+      return;
     }
-    resetSelection();
+
+    setIsSavingConsent(true);
+
+    try {
+      // Step 1: Find the existing consent for this client to preserve the token validity
+      const existingConsent = userConsents.find(consent => consent.clientId === clientId);
+      // Use the existing validity, or a default value if none is found
+      const tokenValidity = existingConsent?.tokenValidity || 'ONE_DAY';
+
+      // Step 2: Call the service function to record the consent with the determined validity
+      await recordConsent(accessToken, clientId, selectedContextId, selectedAttributeIds, tokenValidity);
+
+      // Step 3: On success, signal to the opener window that authentication is complete
+      // We no longer send the attributes, just the token
+      if (window.opener && redirectUri) {
+        window.opener.postMessage({
+          type: 'CONTEXT_AUTH_SUCCESS',
+          payload: {
+            token: accessToken,
+            userId: userInfo?.userId,
+            username: userInfo?.username
+          }
+        }, redirectUri);
+        window.close();
+      } else {
+        console.warn("No opener window found. Cannot send authentication data.");
+        toast({
+          title: "Authentication successful, but window communication failed.",
+          description: "The consent has been recorded.",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to record consent:", error);
+      toast({
+        title: "Consent recording failed.",
+        description: "An error occurred while saving your consent. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSavingConsent(false);
+      resetSelection();
+    }
   };
 
   // Conditional Render for loading state
@@ -273,12 +329,14 @@ const ContextSelectionPage = () => {
             Contextual Identity API
           </Heading>
         </HStack>
-        <IconButton
-          aria-label="Toggle color mode"
-          icon={colorMode === 'light' ? <MoonIcon/> : <SunIcon/>}
-          onClick={toggleColorMode}
-          size="md"
-        />
+        <Tooltip label="Toggle Color Mode">
+          <IconButton
+            aria-label="Toggle color mode"
+            icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+            onClick={toggleColorMode}
+            size="md"
+          />
+        </Tooltip>
       </HStack>
 
       <VStack
@@ -347,7 +405,7 @@ const ContextSelectionPage = () => {
                   >
                     <Box>
                       <Text fontWeight="bold">{attr.name}:</Text>
-                      <Text>{attr.value}</Text>
+                      <Text>{truncateText(attr.value, 50)}</Text>
                     </Box>
                     <Checkbox
                       data-testid={`share-checkbox-${attr.id}`}
@@ -389,12 +447,12 @@ const ContextSelectionPage = () => {
         <Button
           data-testid="confirm-selection-button"
           onClick={handleConfirmSelection}
-          disabled={!selectedContextId || dataLoading}
+          disabled={!selectedContextId || dataLoading || isSavingConsent}
           colorScheme="brand"
           size="lg"
           flexGrow={1}
         >
-          Confirm Selection
+          {isSavingConsent ? <Spinner size="sm" /> : 'Confirm Selection'}
         </Button>
       </HStack>
     </Container>

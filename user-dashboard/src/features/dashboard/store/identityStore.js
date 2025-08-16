@@ -8,9 +8,10 @@ import axiosInstance from 'shared/api/axiosConfig';
  */
 export const useIdentityStore = create((set, get) => ({
 
-  // State for contexts and attributes
+  // State for contexts, attributes and connections
   contexts: [],
   attributes: [],
+  connections: [],
 
   // Message, loading and error states
   message: null,
@@ -34,9 +35,11 @@ export const useIdentityStore = create((set, get) => ({
     try {
       const contextsResponse = await axiosInstance.get('/users/me/contexts');
       const attributesResponse = await axiosInstance.get('/users/me/attributes');
+      const connectionsResponse = await axiosInstance.get('/users/me/connections');
       set({
         contexts: contextsResponse.data,
         attributes: attributesResponse.data,
+        connections: connectionsResponse.data,
         isLoading: false,
         message: "Identity data loaded successfully!",
         error: null,

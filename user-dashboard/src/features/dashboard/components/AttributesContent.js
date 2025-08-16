@@ -41,6 +41,8 @@ import {FaLock, FaEye, FaPlus, FaEdit, FaTrashAlt} from 'react-icons/fa';
 import {useIdentityStore} from 'features/dashboard/store/identityStore';
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 
+import {truncateText} from "shared/util/text";
+
 /**
  * AttributesContent Component
  * Displays a list of user attributes, optionally filtered by a selected context, and provides CRUD actions.
@@ -276,15 +278,20 @@ const AttributesContent = ({
               boxShadow="sm"
               bg={cardBg}
               borderColor={cardBorderColor}
-              _hover={{boxShadow: "md", cursor: "pointer"}}
               transition="all 0.2s ease-in-out"
               onClick={() => handleEditClick(attr)}
+              _hover={{
+                boxShadow: "md",
+                cursor: "pointer",
+                transform: 'scale(1.01)',
+                transition: 'transform 0.1s ease-in-out',
+              }}
             >
               <VStack align="flex-start" spacing={3} h="full">
                 <HStack justifyContent="space-between" mb={2} w="full">
                   <HStack flexWrap="wrap">
-                    <Text fontSize="md" fontWeight="bold" color={textColor}>{attr.name}:</Text>
-                    <Text fontSize="md" color={textColor}>{attr.value}</Text>
+                    <Text fontSize="xl" fontWeight="bold" color={textColor}>{attr.name}:</Text>
+                    <Text fontSize="xl" color={textColor}>{truncateText(attr.value, 35)}</Text>
                   </HStack>
                 </HStack>
 

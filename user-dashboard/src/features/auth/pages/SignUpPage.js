@@ -10,6 +10,7 @@ import {
   Button,
   Stack,
   Text,
+  Tooltip,
   useColorModeValue,
   useToast,
   InputGroup,
@@ -89,8 +90,8 @@ const SignUpPage = () => {
         isClosable: true,
       });
 
-      // Navigate to the dashboard after successful registration and login
-      navigate('/dashboard');
+      // Navigate to the new data sources page after successful registration
+      navigate('/auth/connect');
     } catch (error) {
       console.error('Registration failed:', error);
       toast({
@@ -107,12 +108,12 @@ const SignUpPage = () => {
 
   // Render the sign-up form
   return (
-    <Container centerContent minH="100vh" minW="100vw" variant="fullPageBackground" py={12}>
+    <Container centerContent minH="100vh" minW="100vw" variant="fullPageBackground" py={8}>
       <Stack
         spacing={8}
         mx={'auto'}
-        maxW={'lg'}
-        w={'90%'}
+        maxW={'600px'}
+        w={'600px'}
         py={12}
         px={6}
         bg={cardBg}
@@ -124,12 +125,14 @@ const SignUpPage = () => {
       >
         {/* --- Theme Toggle Button --- */}
         <Box position="absolute" top={4} right={4}>
-          <IconButton
-            aria-label="Toggle color mode"
-            icon={colorMode === 'light' ? <MoonIcon/> : <SunIcon/>}
-            onClick={toggleColorMode}
-            size="md"
-          />
+          <Tooltip label="Toggle Color Mode">
+            <IconButton
+              aria-label="Toggle color mode"
+              icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+              onClick={toggleColorMode}
+              size="md"
+            />
+          </Tooltip>
         </Box>
 
         {/* --- Logo and Main Headings --- */}
