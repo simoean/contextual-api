@@ -62,6 +62,7 @@ class JwtTokenProviderTest {
             Collections.singletonList("ROLE_USER"),
             Collections.emptyList(),
             Collections.emptyList(),
+            Collections.emptyList(),
             Collections.emptyList());
 
     // Use ReflectionTestUtils to set the private @Value fields in JwtTokenProvider

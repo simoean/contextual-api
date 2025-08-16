@@ -67,7 +67,8 @@ class ConsentServiceTest {
             Collections.emptyList(),
             Collections.emptyList(),
             Collections.emptyList(),
-            List.of(testConsent));
+            List.of(testConsent),
+            Collections.emptyList());
   }
 
   @Test

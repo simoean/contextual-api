@@ -59,6 +59,7 @@ class ContextServiceTest {
             Collections.singletonList("ROLE_USER"),
             Arrays.asList(testContextPersonal, testContextProfessional),
             Collections.singletonList(testAttributeFirstName),
+            Collections.emptyList(),
             Collections.emptyList());
   }
 

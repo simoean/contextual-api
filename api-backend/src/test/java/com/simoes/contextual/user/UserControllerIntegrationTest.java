@@ -91,7 +91,8 @@ class UserControllerIntegrationTest {
             Collections.singletonList("ROLE_USER"),
             Arrays.asList(testContextPersonal, testContextProfessional),
             Arrays.asList(testAttributeFirstName, testAttributeLastName),
-            Collections.singletonList(testConsent));
+            Collections.singletonList(testConsent),
+            Collections.emptyList());
 
     // Save the test user into the embedded MongoDB
     userRepository.save(testUser);

@@ -78,7 +78,8 @@ class UserServiceTest {
             Collections.singletonList("ROLE_USER"),
             new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
             new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)),
-            new ArrayList<>(Collections.singletonList(testConsent)));
+            new ArrayList<>(Collections.singletonList(testConsent)),
+            Collections.emptyList());
   }
 
   @Test
@@ -465,6 +466,7 @@ class UserServiceTest {
               Collections.singletonList("ROLE_USER"),
               Collections.emptyList(),
               Collections.emptyList(),
+              Collections.emptyList(),
               Collections.emptyList());
     }
 
@@ -585,6 +587,7 @@ class UserServiceTest {
               "pass",
               "invalid@example.com",
               Collections.singletonList("ROLE_USER"),
+              Collections.emptyList(),
               Collections.emptyList(),
               Collections.emptyList(),
               Collections.emptyList());
@@ -793,7 +796,8 @@ class UserServiceTest {
               Collections.emptyList(),
               new ArrayList<>(
                   Arrays.asList(testAttributeFirstName, testAttributeLastName, testAttributeEmail)),
-              Collections.singletonList(testConsent));
+              Collections.singletonList(testConsent),
+              Collections.emptyList());
     }
 
     @Test

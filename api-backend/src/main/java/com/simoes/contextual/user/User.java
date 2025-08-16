@@ -1,5 +1,6 @@
 package com.simoes.contextual.user;
 
+import com.simoes.contextual.connection.Connection;
 import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
@@ -42,6 +43,9 @@ public class User implements UserDetails {
 
   @Builder.Default
   private List<Consent> consents = Collections.emptyList();
+
+  @Builder.Default
+  private List<Connection> connections = Collections.emptyList();
 
   /**
    * Returns the authorities granted to the user.

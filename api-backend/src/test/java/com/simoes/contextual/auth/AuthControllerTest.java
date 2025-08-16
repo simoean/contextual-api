@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.simoes.contextual.consent.TokenValidity;
 import com.simoes.contextual.security.jwt.JwtTokenProvider;
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
@@ -69,6 +68,7 @@ class AuthControllerTest {
             "$2a$10$6QNMDq1kYlRn16BdqEYIUudW3qJwNI.Fpqb9zpwnzyELvQJsNGomq",
             "test@example.com",
             Collections.singletonList("ROLE_USER"),
+            Collections.emptyList(),
             Collections.emptyList(),
             Collections.emptyList(),
             Collections.emptyList());
@@ -191,6 +191,7 @@ class AuthControllerTest {
               "encodedPassword",
               "newuser@example.com",
               Collections.singletonList("ROLE_USER"),
+              Collections.emptyList(),
               Collections.emptyList(),
               Collections.emptyList(),
               Collections.emptyList());

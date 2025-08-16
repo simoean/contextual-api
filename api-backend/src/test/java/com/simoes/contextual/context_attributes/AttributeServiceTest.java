@@ -33,7 +33,6 @@ class AttributeServiceTest {
 
   private User testUser;
   private IdentityAttribute testAttributeFirstName;
-  private IdentityAttribute testAttributeLastName;
 
   @BeforeEach
   void setUp() {
@@ -47,8 +46,7 @@ class AttributeServiceTest {
             "John",
             true,
             new ArrayList<>(Arrays.asList("ctx-1", "ctx-2")));
-    testAttributeLastName =
-        new IdentityAttribute(
+    IdentityAttribute testAttributeLastName = new IdentityAttribute(
             "attr-2",
             "user123",
             "lastName",
@@ -65,6 +63,7 @@ class AttributeServiceTest {
             Collections.singletonList("ROLE_USER"),
             Collections.emptyList(),
             Arrays.asList(testAttributeFirstName, testAttributeLastName),
+            Collections.emptyList(),
             Collections.emptyList());
   }
 

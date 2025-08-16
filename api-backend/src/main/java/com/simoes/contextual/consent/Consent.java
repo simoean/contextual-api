@@ -21,6 +21,7 @@ public class Consent {
   private String id;
 
   private String clientId;
+  private String contextId;
   private List<String> sharedAttributes;
   private Date createdAt;
   private Date lastUpdatedAt;
