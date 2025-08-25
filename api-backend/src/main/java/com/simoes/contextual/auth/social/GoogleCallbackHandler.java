@@ -2,6 +2,7 @@ package com.simoes.contextual.auth.social;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
 /** Google OAuth 2.0 Handler This component handles the OAuth 2.0 callback from Google. */
@@ -32,6 +34,10 @@ public class GoogleCallbackHandler extends CallbackHandler
 
   @Value("${oauth.google.redirect-uri}")
   private String redirectUri;
+
+  public GoogleCallbackHandler(RestTemplate restTemplate, ObjectMapper objectMapper) {
+    super(restTemplate, objectMapper);
+  }
 
   /**
    * Encapsulates the specific logic for handling a Google OAuth callback.

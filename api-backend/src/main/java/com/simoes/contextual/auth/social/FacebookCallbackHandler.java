@@ -2,6 +2,7 @@ package com.simoes.contextual.auth.social;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
 import java.net.URLEncoder;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
 /**
@@ -32,6 +34,10 @@ public class FacebookCallbackHandler extends CallbackHandler
 
   @Value("${oauth.facebook.redirect-uri}")
   private String redirectUri;
+
+  public FacebookCallbackHandler(RestTemplate restTemplate, ObjectMapper objectMapper) {
+    super(restTemplate, objectMapper);
+  }
 
   /**
    * Handles the callback from Facebook's OAuth authorization page.

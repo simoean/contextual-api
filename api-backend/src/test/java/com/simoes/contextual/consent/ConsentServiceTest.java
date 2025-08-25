@@ -1,12 +1,9 @@
 package com.simoes.contextual.consent;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.simoes.contextual.user.User;
 import com.simoes.contextual.user.UserService;
@@ -44,31 +41,49 @@ class ConsentServiceTest {
   void setUp() {
     // Common setup for test data
     testConsent =
-        Consent.builder()
-            .id("consent-123")
-            .clientId("client-app-1")
-            .sharedAttributes(List.of("attr-1", "attr-2"))
-            .createdAt(new Date())
-            .accessedAt(Collections.emptyList())
-            .build();
+            Consent.builder()
+                    .id("consent-123")
+                    .clientId("client-app-1")
+                    .sharedAttributes(List.of("attr-1", "attr-2"))
+                    .createdAt(new Date())
+                    .accessedAt(Collections.emptyList())
+                    .build();
 
     testNewConsent =
-        Consent.builder()
-            .clientId("client-app-1")
-            .sharedAttributes(List.of("attr-1", "attr-2"))
-            .build();
+            Consent.builder()
+                    .clientId("client-app-1")
+                    .sharedAttributes(List.of("attr-1", "attr-2"))
+                    .build();
 
     testUser =
-        new User(
-            "user123",
-            "john.doe",
-            "password",
-            "john@example.com",
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Collections.emptyList(),
-            List.of(testConsent),
-            Collections.emptyList());
+            new User(
+                    "user123",
+                    "john.doe",
+                    "password",
+                    "john@example.com",
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    List.of(testConsent),
+                    Collections.emptyList());
+  }
+
+  @Test
+  @DisplayName("Should find consent by ID by delegating to UserService")
+  void Given_ConsentExists_When_FindConsentById_Then_ReturnsConsent() {
+    // Arrange
+    when(userService.findConsentById(eq(testUser.getId()), eq(testConsent.getClientId())))
+            .thenReturn(Optional.of(testConsent));
+
+    // Act
+    Optional<Consent> result =
+            consentService.findConsentById(testUser.getId(), testConsent.getClientId());
+
+    // Assert
+    assertTrue(result.isPresent());
+    assertEquals(result.get().getId(), testConsent.getId());
+    verify(userService, times(1))
+            .findConsentById(eq(testUser.getId()), eq(testConsent.getClientId()));
   }
 
   @Test
@@ -76,7 +91,7 @@ class ConsentServiceTest {
   void Given_ConsentDto_When_RecordConsent_Then_DelegatesAndReturnsUpdatedUser() {
     // Given: UserService's recordConsent method returns an Optional containing the updated user
     when(userService.recordConsent(eq(testUser.getId()), any(Consent.class)))
-        .thenReturn(Optional.of(testUser));
+            .thenReturn(Optional.of(testUser));
 
     // When: ConsentService's recordConsent is called
     Optional<User> result = consentService.recordConsent(testUser.getId(), testNewConsent);
@@ -93,7 +108,7 @@ class ConsentServiceTest {
   void Given_NonExistentUser_When_RecordConsent_Then_ReturnsEmptyOptional() {
     // Given: UserService's recordConsent method returns an empty Optional
     when(userService.recordConsent(eq("non-existent-id"), any(Consent.class)))
-        .thenReturn(Optional.empty());
+            .thenReturn(Optional.empty());
 
     // When: ConsentService's recordConsent is called with a non-existent user ID
     Optional<User> result = consentService.recordConsent("non-existent-id", testNewConsent);
@@ -156,21 +171,21 @@ class ConsentServiceTest {
   @Test
   @DisplayName("Should revoke an individual attribute from an existing consent")
   void
-      Given_UserAndExistingConsentAndAttribute_When_RevokeAttributeFromConsent_Then_DelegatesAndReturnsTrue() {
+  Given_UserAndExistingConsentAndAttribute_When_RevokeAttributeFromConsent_Then_DelegatesAndReturnsTrue() {
     // Given: UserService's removeConsentedAttribute method returns true
     when(userService.removeConsentedAttribute(testUser.getId(), testConsent.getId(), "attr-1"))
-        .thenReturn(true);
+            .thenReturn(true);
 
     // When: revokeAttributeFromConsent is called
     boolean result =
-        consentService.revokeAttributeFromConsent(testUser.getId(), testConsent.getId(), "attr-1");
+            consentService.revokeAttributeFromConsent(testUser.getId(), testConsent.getId(), "attr-1");
 
     // Then: The method should return true
     assertTrue(result);
 
     // Verify that userService.removeConsentedAttribute was called once with the correct arguments
     verify(userService, times(1))
-        .removeConsentedAttribute(eq(testUser.getId()), eq(testConsent.getId()), eq("attr-1"));
+            .removeConsentedAttribute(eq(testUser.getId()), eq(testConsent.getId()), eq("attr-1"));
   }
 
   @Test
@@ -179,14 +194,30 @@ class ConsentServiceTest {
     // Given: UserService's removeConsentedAttribute method returns false
     when(userService.removeConsentedAttribute(
             testUser.getId(), testConsent.getId(), "non-existent-attr"))
-        .thenReturn(false);
+            .thenReturn(false);
 
     // When: revokeAttributeFromConsent is called
     boolean result =
-        consentService.revokeAttributeFromConsent(
-            testUser.getId(), testConsent.getId(), "non-existent-attr");
+            consentService.revokeAttributeFromConsent(
+                    testUser.getId(), testConsent.getId(), "non-existent-attr");
 
     // Then: The method should return false
     assertFalse(result);
+  }
+
+  @Test
+  @DisplayName("Should audit access by delegating to UserService")
+  void Given_UserAndConsent_When_AuditAccess_Then_DelegatesToUserService() {
+    // Given - No specific arrangement needed as the method is void.
+    // We just need to verify the call.
+    String userId = testUser.getId();
+    String consentId = testConsent.getId();
+
+    // When
+    consentService.auditAccess(userId, consentId);
+
+    // Then
+    // Verify that userService.auditAccess was called once with the correct arguments
+    verify(userService, times(1)).auditAccess(eq(userId), eq(consentId));
   }
 }

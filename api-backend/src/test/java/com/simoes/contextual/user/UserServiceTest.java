@@ -3,9 +3,12 @@ package com.simoes.contextual.user;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.simoes.contextual.connection.Connection;
 import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
+
+import java.time.Instant;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -79,7 +82,7 @@ class UserServiceTest {
             new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
             new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)),
             new ArrayList<>(Collections.singletonList(testConsent)),
-            Collections.emptyList());
+            new ArrayList<>()); // Initialize with empty connections list
   }
 
   @Test
@@ -496,43 +499,19 @@ class UserServiceTest {
 
       // 2. User's attributes should not be empty and contain the expected default attributes
       assertFalse(newUser.getAttributes().isEmpty());
-      assertEquals(3, newUser.getAttributes().size());
+      assertEquals(1, newUser.getAttributes().size());
       assertTrue(
           newUser.getAttributes().stream()
               .anyMatch(
                   attr ->
-                      attr.getName().equals("First Name")
-                          && attr.getId().startsWith("attr-")
-                          && attr.getUserId().equals(newUser.getId())));
-      assertTrue(
-          newUser.getAttributes().stream()
-              .anyMatch(
-                  attr ->
-                      attr.getName().equals("Last Name")
-                          && attr.getId().startsWith("attr-")
-                          && attr.getUserId().equals(newUser.getId())));
-      assertTrue(
-          newUser.getAttributes().stream()
-              .anyMatch(
-                  attr ->
-                      attr.getName().equals("Email")
+                      attr.getName().equals("Username")
                           && attr.getId().startsWith("attr-")
                           && attr.getUserId().equals(newUser.getId())));
 
       // 3. Attributes should be correctly associated with contexts
       IdentityAttribute firstNameAttr =
           newUser.getAttributes().stream()
-              .filter(attr -> attr.getName().equals("First Name"))
-              .findFirst()
-              .orElseThrow();
-      IdentityAttribute lastNameAttr =
-          newUser.getAttributes().stream()
-              .filter(attr -> attr.getName().equals("Last Name"))
-              .findFirst()
-              .orElseThrow();
-      IdentityAttribute emailAttr =
-          newUser.getAttributes().stream()
-              .filter(attr -> attr.getName().equals("Email"))
+              .filter(attr -> attr.getName().equals("Username"))
               .findFirst()
               .orElseThrow();
 
@@ -560,16 +539,6 @@ class UserServiceTest {
       assertTrue(firstNameAttr.getContextIds().contains(professionalCtxId));
       assertTrue(firstNameAttr.getContextIds().contains(academicCtxId));
       assertEquals(3, firstNameAttr.getContextIds().size());
-
-      assertTrue(lastNameAttr.getContextIds().contains(personalCtxId));
-      assertTrue(lastNameAttr.getContextIds().contains(professionalCtxId));
-      assertTrue(lastNameAttr.getContextIds().contains(academicCtxId));
-      assertEquals(3, lastNameAttr.getContextIds().size());
-
-      assertTrue(emailAttr.getContextIds().contains(personalCtxId));
-      assertFalse(emailAttr.getContextIds().contains(professionalCtxId));
-      assertFalse(emailAttr.getContextIds().contains(academicCtxId));
-      assertEquals(1, emailAttr.getContextIds().size());
 
       // 4. userRepository.save should be called exactly once with the modified user object
       verify(userRepository, times(1)).save(newUser);
@@ -603,7 +572,178 @@ class UserServiceTest {
     }
   }
 
-  // New Nested class for Consent operations
+  @Nested
+  @DisplayName("Bulk Attribute Operations")
+  class BulkAttributeOperations {
+
+    private List<IdentityAttribute> attributesToSave;
+    private IdentityAttribute existingAttributeToUpdate;
+
+    @BeforeEach
+    void setupBulkTests() {
+      // An existing attribute from the main test setup
+      existingAttributeToUpdate =
+          new IdentityAttribute(
+              testAttributeFirstName.getId(), // "attr-1"
+              testUser.getId(),
+              "firstName",
+              "Jonathan", // New value
+              false,
+              Collections.singletonList(testContextPersonal.getId())); // New context list
+
+      // A completely new attribute
+      IdentityAttribute newAttribute = new IdentityAttribute(
+              null,
+              null,
+              "middleName",
+              "M",
+              true,
+              Collections.singletonList(testContextPersonal.getId()));
+
+      attributesToSave = Arrays.asList(existingAttributeToUpdate, newAttribute);
+    }
+
+    @Test
+    @DisplayName("Should update existing and create new attributes in a single bulk operation")
+    void Given_MixOfNewAndExistingAttributes_When_SaveAttributesBulk_Then_UserIsUpdatedCorrectly() {
+      // Given: The user is found in the repository
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      // No need to mock save, as we'll verify the user object passed to it.
+
+      // When: The bulk save method is called
+      List<IdentityAttribute> savedAttributes =
+          userService.saveAttributesBulk(testUser.getId(), attributesToSave);
+
+      // Then: The returned list should contain all attributes
+      assertEquals(3, savedAttributes.size()); // Original "lastName" + updated "firstName" + new
+      // "middleName"
+
+      // Verify the existing attribute was updated
+      IdentityAttribute updatedAttr =
+          savedAttributes.stream()
+              .filter(a -> a.getId().equals(existingAttributeToUpdate.getId()))
+              .findFirst()
+              .orElseThrow();
+      assertEquals("Jonathan", updatedAttr.getValue());
+      assertEquals(
+          existingAttributeToUpdate.getContextIds(),
+          updatedAttr.getContextIds()); // Check context IDs were updated
+
+      // Verify the new attribute was created with a new ID
+      IdentityAttribute createdAttr =
+          savedAttributes.stream()
+              .filter(a -> "middleName".equals(a.getName()))
+              .findFirst()
+              .orElseThrow();
+      assertNotNull(createdAttr.getId());
+      assertTrue(createdAttr.getId().startsWith("attr-"));
+      assertEquals(testUser.getId(), createdAttr.getUserId());
+
+      // Verify repository's save method was called exactly once
+      verify(userRepository, times(1)).save(testUser);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when user is not found for bulk save")
+    void Given_NonExistentUser_When_SaveAttributesBulk_Then_ThrowsIllegalArgumentException() {
+      // Given: The user is not found in the repository
+      when(userRepository.findById(anyString())).thenReturn(Optional.empty());
+
+      // When/Then: Calling the bulk save method throws an exception
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> userService.saveAttributesBulk("non-existent-id", attributesToSave),
+          "User not found with ID: non-existent-id");
+
+      // Verify that save was never called
+      verify(userRepository, never()).save(any(User.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Connection Operations")
+  class ConnectionOperations {
+
+    private Connection newConnection;
+
+    @BeforeEach
+    void setupConnectionTests() {
+      newConnection =
+          new Connection("provider-google", "google-user-id", "access-token-123", Instant.now());
+    }
+
+    @Test
+    @DisplayName("Should add a new connection successfully")
+    void Given_UserWithoutConnection_When_SaveConnection_Then_ConnectionIsAdded() {
+      // Given: User is found and has an empty list of connections
+      when(userRepository.findByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
+      assertTrue(testUser.getConnections().isEmpty());
+
+      // When: saveConnection is called
+      userService.saveConnection(testUser.getUsername(), newConnection);
+
+      // Then: The connection is added to the user's list
+      assertEquals(1, testUser.getConnections().size());
+      assertTrue(testUser.getConnections().contains(newConnection));
+
+      // Verify save was called
+      verify(userRepository, times(1)).save(testUser);
+    }
+
+    @Test
+    @DisplayName("Should update an existing connection successfully")
+    void Given_UserWithExistingConnection_When_SaveConnection_Then_ConnectionIsUpdated() {
+      // Given: User is found and already has a connection for the same provider
+      Connection existingConnection =
+          new Connection("provider-google", "google-user-id", "old-token", Instant.now());
+      testUser.setConnections(new ArrayList<>(Collections.singletonList(existingConnection)));
+      when(userRepository.findByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
+
+      // When: saveConnection is called with an updated token
+      userService.saveConnection(testUser.getUsername(), newConnection);
+
+      // Then: The existing connection is updated, and no new connection is added
+      assertEquals(1, testUser.getConnections().size());
+      assertEquals("access-token-123", testUser.getConnections().get(0).getProviderAccessToken());
+
+      // Verify save was called
+      verify(userRepository, times(1)).save(testUser);
+    }
+
+    @Test
+    @DisplayName("Should throw RuntimeException when saving connection for non-existent user")
+    void Given_NonExistentUser_When_SaveConnection_Then_ThrowsRuntimeException() {
+      // Given: User is not found
+      when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+
+      // When/Then: Calling saveConnection throws an exception
+      assertThrows(
+          RuntimeException.class,
+          () -> userService.saveConnection("non-existent-user", newConnection));
+
+      // Verify save was not called
+      verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should delete a connection successfully")
+    void Given_UserWithConnection_When_DeleteConnection_Then_ConnectionIsRemoved() {
+      // Given: User has the connection to be deleted
+      testUser.getConnections().add(newConnection);
+      when(userRepository.findByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
+      assertEquals(1, testUser.getConnections().size());
+
+      // When: deleteConnection is called
+      userService.deleteConnection(testUser.getUsername(), "provider-google");
+
+      // Then: The connection is removed from the user's list
+      assertTrue(testUser.getConnections().isEmpty());
+
+      // Verify save was called
+      verify(userRepository, times(1)).save(testUser);
+    }
+  }
+
   @Nested
   @DisplayName("Consent Operations")
   class ConsentOperations {
@@ -667,6 +807,7 @@ class UserServiceTest {
               .orElseThrow();
 
       assertEquals(existingConsent.getSharedAttributes(), updatedConsent.getSharedAttributes());
+      assertTrue(updatedConsent.getLastUpdatedAt().after(lastUpdatedAt));
 
       // Verify that save was called once
       verify(userRepository, times(1)).save(testUser);
@@ -736,6 +877,56 @@ class UserServiceTest {
 
       // Verify that save was NOT called
       verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should find an existing consent by client ID")
+    void Given_UserAndClientId_When_FindConsentById_Then_ReturnsConsent() {
+      // Given: UserRepository finds the user
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+      // When: findConsentById is called with an existing client ID
+      Optional<Consent> result = userService.findConsentById(testUser.getId(), "client-app-1");
+
+      // Then: The correct consent is returned
+      assertTrue(result.isPresent());
+      assertEquals(testConsent.getId(), result.get().getId());
+    }
+
+    @Test
+    @DisplayName("Should return empty optional when consent for client ID is not found")
+    void Given_UserAndNonExistentClientId_When_FindConsentById_Then_ReturnsEmptyOptional() {
+      // Given: UserRepository finds the user
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+      // When: findConsentById is called with a non-existent client ID
+      Optional<Consent> result =
+          userService.findConsentById(testUser.getId(), "non-existent-client");
+
+      // Then: The optional is empty
+      assertFalse(result.isPresent());
+    }
+
+    @Test
+    @DisplayName("Should correctly record consent when user's initial consent list is null")
+    void Given_UserWithNullConsentsList_When_RecordConsent_Then_NewConsentIsCreated() {
+      // Given: User has a null consents list
+      testUser.setConsents(null);
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+      // When: recordConsent is called
+      Optional<User> updatedUser = userService.recordConsent(testUser.getId(), newConsent);
+
+      // Then: The user's consent list is initialized and contains the new consent
+      updatedUser.ifPresent(user -> {
+        assertNotNull(user.getConsents());
+        assertEquals(1, user.getConsents().size());
+        assertEquals(newConsent.getClientId(), user.getConsents().get(0).getClientId());
+      });
+
+      // Verify save was called
+      verify(userRepository, times(1)).save(testUser);
     }
   }
 
@@ -908,6 +1099,71 @@ class UserServiceTest {
       assertFalse(removed);
 
       // Verify that the user was NOT saved
+      verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when removing consented attribute for non-existent user")
+    void Given_NonExistentUser_When_RemoveConsentedAttribute_Then_ReturnsFalse() {
+      // Given: UserRepository does not find the user
+      when(userRepository.findById(anyString())).thenReturn(Optional.empty());
+
+      // When: removeConsentedAttribute is called
+      boolean removed =
+          userService.removeConsentedAttribute("non-existent-user", testConsent.getId(), "attr-1");
+
+      // Then: The method returns false
+      assertFalse(removed);
+
+      // Verify that save was NOT called
+      verify(userRepository, never()).save(any(User.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Audit Operations")
+  class AuditOperations {
+    @Test
+    @DisplayName("Should add an access timestamp to an existing consent")
+    void Given_UserAndConsent_When_AuditAccess_Then_AccessTimestampIsAdded() {
+      // Given: UserRepository finds the user, and consent has an initial accessedAt list
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      int initialAccessCount = testUser.getConsents().get(0).getAccessedAt().size();
+
+      // When: auditAccess is called
+      userService.auditAccess(testUser.getId(), testConsent.getId());
+
+      // Then: A new timestamp is added to the consent's accessedAt list
+      assertEquals(initialAccessCount + 1, testUser.getConsents().get(0).getAccessedAt().size());
+
+      // Verify that save was called once
+      verify(userRepository, times(1)).save(testUser);
+    }
+
+    @Test
+    @DisplayName("Should not save when auditing a non-existent consent")
+    void Given_UserAndNonExistentConsent_When_AuditAccess_Then_DoesNothing() {
+      // Given: UserRepository finds the user
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+      // When: auditAccess is called for a consent that doesn't exist
+      userService.auditAccess(testUser.getId(), "non-existent-consent");
+
+      // Then: No exception is thrown, and save is not called
+      verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should not throw error when auditing for a non-existent user")
+    void Given_NonExistentUser_When_AuditAccess_Then_DoesNothing() {
+      // Given: UserRepository does not find the user
+      when(userRepository.findById(anyString())).thenReturn(Optional.empty());
+
+      // When: auditAccess is called
+      userService.auditAccess("non-existent-user", "any-consent-id");
+
+      // Then: No exception is thrown, and no repository methods are called beyond findById
+      verify(userRepository, times(1)).findById(anyString());
       verify(userRepository, never()).save(any(User.class));
     }
   }

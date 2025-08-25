@@ -3,13 +3,15 @@ package com.simoes.contextual.auth.social;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 public abstract class CallbackHandler {
-  final RestTemplate restTemplate = new RestTemplate();
-  final ObjectMapper objectMapper = new ObjectMapper();
+  protected final RestTemplate restTemplate;
+  protected final ObjectMapper objectMapper;
 
   public abstract List<IdentityAttribute> getUserAttributes(String accessToken, List<Context> userContexts);
 

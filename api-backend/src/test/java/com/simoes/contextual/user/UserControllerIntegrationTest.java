@@ -108,9 +108,9 @@ class UserControllerIntegrationTest {
   @DisplayName("Should return authenticated user's profile successfully")
   @WithMockUser(username = "john.doe.int")
   void Given_AuthenticatedUser_When_GetMyProfile_Then_ReturnsUserDetails() throws Exception {
-    // When: GET request to /api/users/me is performed
+    // When: GET request to /api/v1/users/me is performed
     mockMvc
-        .perform(get("/api/users/me").contentType(MediaType.APPLICATION_JSON))
+        .perform(get("/api/v1/users/me").contentType(MediaType.APPLICATION_JSON))
         // Then: Status should be OK (200)
         .andExpect(status().isOk())
         // And: JSON response should contain expected user details
@@ -128,9 +128,9 @@ class UserControllerIntegrationTest {
   @Test
   @DisplayName("Should return 401 UNAUTHORIZED for unauthenticated user trying to get profile")
   void Given_UnauthenticatedUser_When_GetMyProfile_Then_ReturnsUnauthorized() throws Exception {
-    // When: GET request to /api/users/me is performed without authentication
+    // When: GET request to /api/v1/users/me is performed without authentication
     mockMvc
-        .perform(get("/api/users/me").contentType(MediaType.APPLICATION_JSON))
+        .perform(get("/api/v1/users/me").contentType(MediaType.APPLICATION_JSON))
         // Then: Status should be UNAUTHORIZED (401)
         .andExpect(status().isUnauthorized());
   }
@@ -142,7 +142,7 @@ class UserControllerIntegrationTest {
       throws Exception {
     mockMvc
         .perform(
-            get("/api/users/{userId}/attributes", testUser.getId())
+            get("/api/v1/users/{userId}/attributes", testUser.getId())
                 .param("clientId", "client-app-int")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
@@ -159,7 +159,7 @@ class UserControllerIntegrationTest {
       throws Exception {
     mockMvc
         .perform(
-            get("/api/users/{userId}/attributes", testUser.getId())
+            get("/api/v1/users/{userId}/attributes", testUser.getId())
                 .param("clientId", "non-existent-client")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound());
@@ -171,7 +171,7 @@ class UserControllerIntegrationTest {
   void Given_NonExistentUser_When_GetConsentedAttributes_Then_ReturnsNotFound() throws Exception {
     mockMvc
         .perform(
-            get("/api/users/{userId}/attributes", "non-existent-user-id")
+            get("/api/v1/users/{userId}/attributes", "non-existent-user-id")
                 .param("clientId", "client-app-int")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isNotFound());
@@ -183,7 +183,7 @@ class UserControllerIntegrationTest {
       throws Exception {
     mockMvc
         .perform(
-            get("/api/users/{userId}/attributes", testUser.getId())
+            get("/api/v1/users/{userId}/attributes", testUser.getId())
                 .param("clientId", "client-app-int")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isUnauthorized());

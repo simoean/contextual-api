@@ -4,10 +4,7 @@ import com.simoes.contextual.connection.Connection;
 import com.simoes.contextual.consent.Consent;
 import com.simoes.contextual.context_attributes.Context;
 import com.simoes.contextual.context_attributes.IdentityAttribute;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,6 +21,7 @@ import java.util.stream.Collectors;
  * details, including username, password, email, roles, contexts, and identity attributes.
  */
 @Data
+@With
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

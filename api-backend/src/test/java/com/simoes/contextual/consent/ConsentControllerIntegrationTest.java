@@ -83,7 +83,7 @@ class ConsentControllerIntegrationTest {
   @WithMockUser(username = "consent.user.int")
   void Given_AuthenticatedUser_When_GetAllConsents_Then_ReturnListOfConsents() throws Exception {
     mockMvc
-        .perform(get("/api/users/me/consents").contentType(MediaType.APPLICATION_JSON))
+        .perform(get("/api/v1/users/me/consents").contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(1))
@@ -100,7 +100,7 @@ class ConsentControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/api/users/me/consents")
+            post("/api/v1/users/me/consents")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(newConsent)))
         .andExpect(status().isCreated())
@@ -133,7 +133,7 @@ class ConsentControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/api/users/me/consents")
+            post("/api/v1/users/me/consents")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updatedConsent)))
         .andExpect(status().isCreated())
@@ -155,7 +155,7 @@ class ConsentControllerIntegrationTest {
   void Given_AuthenticatedUserAndExistingConsent_When_DeleteConsent_Then_ConsentIsDeleted()
       throws Exception {
     mockMvc
-        .perform(delete("/api/users/me/consents/{consentId}", testConsent.getId()))
+        .perform(delete("/api/v1/users/me/consents/{consentId}", testConsent.getId()))
         .andExpect(status().isNoContent());
 
     // Verify deletion in the database
@@ -169,7 +169,7 @@ class ConsentControllerIntegrationTest {
   void Given_AuthenticatedUserAndNonExistentConsent_When_DeleteConsent_Then_ReturnsNotFound()
       throws Exception {
     mockMvc
-        .perform(delete("/api/users/me/consents/{consentId}", "non-existent-consent-id"))
+        .perform(delete("/api/v1/users/me/consents/{consentId}", "non-existent-consent-id"))
         .andExpect(status().isNotFound());
 
     // Verify no changes to user's consents in the database
@@ -182,14 +182,14 @@ class ConsentControllerIntegrationTest {
   void Given_UnauthenticatedUser_When_AccessingConsentEndpoints_Then_ReturnsUnauthorized()
       throws Exception {
     // Test GET endpoint
-    mockMvc.perform(get("/api/users/me/consents")).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/api/v1/users/me/consents")).andExpect(status().isUnauthorized());
 
     // Test POST endpoint
-    mockMvc.perform(post("/api/users/me/consents")).andExpect(status().isUnauthorized());
+    mockMvc.perform(post("/api/v1/users/me/consents")).andExpect(status().isUnauthorized());
 
     // Test DELETE endpoint
     mockMvc
-        .perform(delete("/api/users/me/consents/{consentId}", "any-id"))
+        .perform(delete("/api/v1/users/me/consents/{consentId}", "any-id"))
         .andExpect(status().isUnauthorized());
   }
 
@@ -211,7 +211,7 @@ class ConsentControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/api/users/me/consents/{consentId}/attributes/{attributeId}",
+                "/api/v1/users/me/consents/{consentId}/attributes/{attributeId}",
                 testConsent.getId(),
                 "attr-2"))
         .andExpect(status().isNoContent());
@@ -233,7 +233,7 @@ class ConsentControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/api/users/me/consents/{consentId}/attributes/{attributeId}",
+                "/api/v1/users/me/consents/{consentId}/attributes/{attributeId}",
                 testConsent.getId(),
                 "non-existent-attr"))
         .andExpect(status().isNotFound());
@@ -253,7 +253,7 @@ class ConsentControllerIntegrationTest {
     mockMvc
         .perform(
             delete(
-                "/api/users/me/consents/{consentId}/attributes/{attributeId}",
+                "/api/v1/users/me/consents/{consentId}/attributes/{attributeId}",
                 "non-existent-id",
                 "attr-1"))
         .andExpect(status().isNotFound());

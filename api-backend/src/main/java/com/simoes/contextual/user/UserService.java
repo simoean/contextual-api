@@ -86,39 +86,39 @@ public class UserService {
 
     // Create OOTB Contexts
     Context personalContext =
-            Context.builder()
-                    .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
-                    .name("Personal")
-                    .description("Your personal identity details for everyday use.")
-                    .build();
+        Context.builder()
+            .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
+            .name("Personal")
+            .description("Your personal identity details for everyday use.")
+            .build();
 
     Context professionalContext =
-            Context.builder()
-                    .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
-                    .name("Professional")
-                    .description("Identity details relevant to your professional life and career.")
-                    .build();
+        Context.builder()
+            .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
+            .name("Professional")
+            .description("Identity details relevant to your professional life and career.")
+            .build();
 
     Context academicContext =
-            Context.builder()
-                    .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
-                    .name("Academic")
-                    .description("Identity details for educational institutions and academic pursuits.")
-                    .build();
+        Context.builder()
+            .id("ctx-" + UUID.randomUUID().toString().substring(0, 8))
+            .name("Academic")
+            .description("Identity details for educational institutions and academic pursuits.")
+            .build();
 
     user.setContexts(Arrays.asList(personalContext, professionalContext, academicContext));
 
     // Create OOTB username Attribute
     // Attributes will be private by default as they contain sensitive information
     IdentityAttribute firstNameAttr =
-            IdentityAttribute.builder()
-                    .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
-                    .userId(userId)
-                    .name("Username")
-                    .value(user.getUsername())
-                    .visible(true)
-                    .contextIds(new ArrayList<>())
-                    .build();
+        IdentityAttribute.builder()
+            .id("attr-" + UUID.randomUUID().toString().substring(0, 8))
+            .userId(userId)
+            .name("Username")
+            .value(user.getUsername())
+            .visible(true)
+            .contextIds(new ArrayList<>())
+            .build();
 
     // Associate Attributes with Contexts
     firstNameAttr.getContextIds().add(personalContext.getId());
@@ -137,19 +137,19 @@ public class UserService {
    * @param userId The ID of the user for whom the context is to be created.
    * @param newContext The Context object to create.
    * @return An Optional containing the created Context if successful, or empty if the user does not
-   * exist.
+   *     exist.
    */
   public Optional<Context> createContext(String userId, Context newContext) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      String newContextId = "ctx-" + UUID.randomUUID().toString().substring(0, 8);
-                      newContext.setId(newContextId);
-                      user.getContexts().add(newContext);
-                      userRepository.save(user);
-                      return newContext;
-                    });
+        .findById(userId)
+        .map(
+            user -> {
+              String newContextId = "ctx-" + UUID.randomUUID().toString().substring(0, 8);
+              newContext.setId(newContextId);
+              user.getContexts().add(newContext);
+              userRepository.save(user);
+              return newContext;
+            });
   }
 
   /**
@@ -159,31 +159,31 @@ public class UserService {
    * @param contextId The ID of the context to update.
    * @param updatedContext The Context object with updated values.
    * @return An Optional containing the updated Context if successful, or empty if the user or
-   * context was not found.
+   *     context was not found.
    */
   public Optional<Context> updateContext(String userId, String contextId, Context updatedContext) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      List<Context> updatedContexts =
-                              user.getContexts().stream()
-                                      .map(
-                                              ctx ->
-                                                      ctx.getId().equals(contextId)
-                                                              ? updatedContext.withId(contextId)
-                                                              : ctx)
-                                      .collect(Collectors.toList());
+        .findById(userId)
+        .map(
+            user -> {
+              List<Context> updatedContexts =
+                  user.getContexts().stream()
+                      .map(
+                          ctx ->
+                              ctx.getId().equals(contextId)
+                                  ? updatedContext.withId(contextId)
+                                  : ctx)
+                      .collect(Collectors.toList());
 
-                      boolean contextExists =
-                              updatedContexts.stream().anyMatch(ctx -> ctx.getId().equals(contextId));
+              boolean contextExists =
+                  updatedContexts.stream().anyMatch(ctx -> ctx.getId().equals(contextId));
 
-                      if (!contextExists) return null;
+              if (!contextExists) return null;
 
-                      user.setContexts(updatedContexts);
-                      userRepository.save(user);
-                      return updatedContext.withId(contextId);
-                    });
+              user.setContexts(updatedContexts);
+              userRepository.save(user);
+              return updatedContext.withId(contextId);
+            });
   }
 
   /**
@@ -195,27 +195,27 @@ public class UserService {
    */
   public boolean deleteContext(String userId, String contextId) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      boolean removed = user.getContexts().removeIf(ctx -> ctx.getId().equals(contextId));
-                      if (!removed) return false;
+        .findById(userId)
+        .map(
+            user -> {
+              boolean removed = user.getContexts().removeIf(ctx -> ctx.getId().equals(contextId));
+              if (!removed) return false;
 
-                      user.getAttributes()
-                              .forEach(
-                                      attr -> {
-                                        List<String> contextIds = attr.getContextIds();
-                                        if (contextIds != null && contextIds.contains(contextId)) {
-                                          contextIds = new ArrayList<>(contextIds);
-                                          contextIds.remove(contextId);
-                                          attr.setContextIds(contextIds);
-                                        }
-                                      });
+              user.getAttributes()
+                  .forEach(
+                      attr -> {
+                        List<String> contextIds = attr.getContextIds();
+                        if (contextIds != null && contextIds.contains(contextId)) {
+                          contextIds = new ArrayList<>(contextIds);
+                          contextIds.remove(contextId);
+                          attr.setContextIds(contextIds);
+                        }
+                      });
 
-                      userRepository.save(user);
-                      return true;
-                    })
-            .orElse(false);
+              userRepository.save(user);
+              return true;
+            })
+        .orElse(false);
   }
 
   /**
@@ -224,26 +224,26 @@ public class UserService {
    * @param userId The ID of the user for whom the attribute is to be created.
    * @param newAttribute The IdentityAttribute object to create.
    * @return An Optional containing the created IdentityAttribute if successful, or empty if the
-   * user does not exist.
+   *     user does not exist.
    */
   public Optional<IdentityAttribute> createAttribute(
-          String userId, IdentityAttribute newAttribute) {
+      String userId, IdentityAttribute newAttribute) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
-                      newAttribute.setId(newId);
-                      newAttribute.setUserId(userId);
+        .findById(userId)
+        .map(
+            user -> {
+              String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
+              newAttribute.setId(newId);
+              newAttribute.setUserId(userId);
 
-                      if (newAttribute.getContextIds() == null) {
-                        newAttribute.setContextIds(new ArrayList<>());
-                      }
+              if (newAttribute.getContextIds() == null) {
+                newAttribute.setContextIds(new ArrayList<>());
+              }
 
-                      user.getAttributes().add(newAttribute);
-                      userRepository.save(user);
-                      return newAttribute;
-                    });
+              user.getAttributes().add(newAttribute);
+              userRepository.save(user);
+              return newAttribute;
+            });
   }
 
   /**
@@ -253,32 +253,32 @@ public class UserService {
    * @param attributeId The ID of the attribute to update.
    * @param updatedAttribute The IdentityAttribute object with updated values.
    * @return An Optional containing the updated IdentityAttribute if successful, or empty if the
-   * user or attribute was not found.
+   *     user or attribute was not found.
    */
   public Optional<IdentityAttribute> updateAttribute(
-          String userId, String attributeId, IdentityAttribute updatedAttribute) {
+      String userId, String attributeId, IdentityAttribute updatedAttribute) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      List<IdentityAttribute> updatedAttributes =
-                              user.getAttributes().stream()
-                                      .map(
-                                              attr ->
-                                                      attr.getId().equals(attributeId)
-                                                              ? prepareUpdatedAttribute(updatedAttribute, userId, attributeId)
-                                                              : attr)
-                                      .collect(Collectors.toList());
+        .findById(userId)
+        .map(
+            user -> {
+              List<IdentityAttribute> updatedAttributes =
+                  user.getAttributes().stream()
+                      .map(
+                          attr ->
+                              attr.getId().equals(attributeId)
+                                  ? prepareUpdatedAttribute(updatedAttribute, userId, attributeId)
+                                  : attr)
+                      .collect(Collectors.toList());
 
-                      boolean exists =
-                              updatedAttributes.stream().anyMatch(attr -> attr.getId().equals(attributeId));
+              boolean exists =
+                  updatedAttributes.stream().anyMatch(attr -> attr.getId().equals(attributeId));
 
-                      if (!exists) return null;
+              if (!exists) return null;
 
-                      user.setAttributes(updatedAttributes);
-                      userRepository.save(user);
-                      return updatedAttribute;
-                    });
+              user.setAttributes(updatedAttributes);
+              userRepository.save(user);
+              return updatedAttribute;
+            });
   }
 
   /**
@@ -290,11 +290,11 @@ public class UserService {
    * @return The prepared IdentityAttribute with updated ID and userId.
    */
   private IdentityAttribute prepareUpdatedAttribute(
-          IdentityAttribute attr, String userId, String id) {
+      IdentityAttribute attr, String userId, String id) {
     attr.setId(id);
     attr.setUserId(userId);
     attr.setContextIds(
-            attr.getContextIds() == null ? new ArrayList<>() : new ArrayList<>(attr.getContextIds()));
+        attr.getContextIds() == null ? new ArrayList<>() : new ArrayList<>(attr.getContextIds()));
     return attr;
   }
 
@@ -307,17 +307,17 @@ public class UserService {
    */
   public boolean deleteAttribute(String userId, String attributeId) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      boolean removed =
-                              user.getAttributes().removeIf(attr -> attr.getId().equals(attributeId));
-                      if (!removed) return false;
+        .findById(userId)
+        .map(
+            user -> {
+              boolean removed =
+                  user.getAttributes().removeIf(attr -> attr.getId().equals(attributeId));
+              if (!removed) return false;
 
-                      userRepository.save(user);
-                      return true;
-                    })
-            .orElse(false);
+              userRepository.save(user);
+              return true;
+            })
+        .orElse(false);
   }
 
   /**
@@ -330,48 +330,48 @@ public class UserService {
    * @return The list of saved attributes.
    */
   public List<IdentityAttribute> saveAttributesBulk(
-          String userId, List<IdentityAttribute> attributes) {
+      String userId, List<IdentityAttribute> attributes) {
     // Find the user or throw an exception if not found.
     // This ensures we always have a user object to work with.
     User user =
-            userRepository
-                    .findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
     // Create a mutable copy of the existing attributes for easier management.
     List<IdentityAttribute> userAttributes = new ArrayList<>(user.getAttributes());
 
     // Iterate through the attributes to be saved.
     attributes.forEach(
-            attributeToSave -> {
-              // Check if the attribute already exists by ID.
-              Optional<IdentityAttribute> existingAttributeOpt =
-                      userAttributes.stream()
-                              .filter(
-                                      existingAttr ->
-                                              attributeToSave.getId() != null
-                                                      && existingAttr.getId().equals(attributeToSave.getId()))
-                              .findFirst();
+        attributeToSave -> {
+          // Check if the attribute already exists by ID.
+          Optional<IdentityAttribute> existingAttributeOpt =
+              userAttributes.stream()
+                  .filter(
+                      existingAttr ->
+                          attributeToSave.getId() != null
+                              && existingAttr.getId().equals(attributeToSave.getId()))
+                  .findFirst();
 
-              if (existingAttributeOpt.isPresent()) {
-                // If the attribute exists, update its values.
-                IdentityAttribute existingAttribute = existingAttributeOpt.get();
-                existingAttribute.setValue(attributeToSave.getValue());
-                existingAttribute.setContextIds(attributeToSave.getContextIds());
-              } else {
-                // If it's a new attribute, give it a new ID and add it to the list.
-                if (attributeToSave.getId() == null || attributeToSave.getId().isEmpty()) {
-                  String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
-                  attributeToSave.setId(newId);
-                }
-                attributeToSave.setUserId(userId);
+          if (existingAttributeOpt.isPresent()) {
+            // If the attribute exists, update its values.
+            IdentityAttribute existingAttribute = existingAttributeOpt.get();
+            existingAttribute.setValue(attributeToSave.getValue());
+            existingAttribute.setContextIds(attributeToSave.getContextIds());
+          } else {
+            // If it's a new attribute, give it a new ID and add it to the list.
+            if (attributeToSave.getId() == null || attributeToSave.getId().isEmpty()) {
+              String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
+              attributeToSave.setId(newId);
+            }
+            attributeToSave.setUserId(userId);
 
-                if (attributeToSave.getContextIds() == null) {
-                  attributeToSave.setContextIds(new ArrayList<>());
-                }
-                userAttributes.add(attributeToSave);
-              }
-            });
+            if (attributeToSave.getContextIds() == null) {
+              attributeToSave.setContextIds(new ArrayList<>());
+            }
+            userAttributes.add(attributeToSave);
+          }
+        });
 
     // Replace the old list with the newly updated list.
     user.setAttributes(userAttributes);
@@ -394,7 +394,8 @@ public class UserService {
       List<Connection> connections = user.getConnections();
 
       // Find if a connection to this provider already exists
-      Optional<Connection> existingConnection = connections.stream()
+      Optional<Connection> existingConnection =
+          connections.stream()
               .filter(conn -> conn.getProviderId().equals(newConnection.getProviderId()))
               .findFirst();
 
@@ -439,12 +440,12 @@ public class UserService {
    */
   public Optional<Consent> findConsentById(String userId, String clientId) {
     return userRepository
-            .findById(userId)
-            .flatMap(
-                    user ->
-                            user.getConsents().stream()
-                                    .filter(consent -> consent.getClientId().equals(clientId))
-                                    .findFirst());
+        .findById(userId)
+        .flatMap(
+            user ->
+                user.getConsents().stream()
+                    .filter(consent -> consent.getClientId().equals(clientId))
+                    .findFirst());
   }
 
   /**
@@ -455,40 +456,39 @@ public class UserService {
    * @param userId The ID of the user.
    * @param newConsent The consent containing the client ID and shared attributes.
    * @return An Optional containing the updated User if successful, or empty if the user is not
-   * found.
+   *     found.
    */
   public Optional<User> recordConsent(String userId, Consent newConsent) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      List<Consent> consents = user.getConsents();
-                      if (consents == null) {
-                        consents = Collections.emptyList();
-                        user.setConsents(consents);
-                      }
+        .findById(userId)
+        .map(
+            user -> {
+              List<Consent> consents =
+                  Optional.ofNullable(user.getConsents()).orElse(new ArrayList<>());
 
-                      Optional<Consent> existingConsent =
-                              consents.stream()
-                                      .filter(c -> c.getClientId().equals(newConsent.getClientId()))
-                                      .findFirst();
+              Optional<Consent> existingConsent =
+                  consents.stream()
+                      .filter(c -> c.getClientId().equals(newConsent.getClientId()))
+                      .findFirst();
 
-                      if (existingConsent.isPresent()) {
-                        Consent consent = existingConsent.get();
-                        consent.setContextId(newConsent.getContextId());
-                        consent.setSharedAttributes(newConsent.getSharedAttributes());
-                        consent.setTokenValidity(newConsent.getTokenValidity());
-                        consent.setLastUpdatedAt(new Date());
-                      } else {
-                        consents.add(
-                                newConsent
-                                        .withId("cons-" + UUID.randomUUID().toString().substring(0, 8))
-                                        .withCreatedAt(new Date())
-                                        .withLastUpdatedAt(new Date())
-                                        .withTokenValidity(TokenValidity.ONE_HOUR));
-                      }
-                      return userRepository.save(user);
-                    });
+              if (existingConsent.isPresent()) {
+                Consent consent = existingConsent.get();
+                consent.setContextId(newConsent.getContextId());
+                consent.setSharedAttributes(newConsent.getSharedAttributes());
+                consent.setTokenValidity(newConsent.getTokenValidity());
+                consent.setLastUpdatedAt(new Date());
+              } else {
+                consents.add(
+                    newConsent
+                        .withId("cons-" + UUID.randomUUID().toString().substring(0, 8))
+                        .withCreatedAt(new Date())
+                        .withLastUpdatedAt(new Date())
+                        .withTokenValidity(TokenValidity.ONE_HOUR));
+
+                user.setConsents(consents);
+              }
+              return userRepository.save(user);
+            });
   }
 
   /**
@@ -500,17 +500,17 @@ public class UserService {
    */
   public boolean revokeConsent(String userId, String consentId) {
     return userRepository
-            .findById(userId)
-            .map(
-                    user -> {
-                      boolean removed =
-                              user.getConsents().removeIf(consent -> consent.getId().equals(consentId));
-                      if (removed) {
-                        userRepository.save(user);
-                      }
-                      return removed;
-                    })
-            .orElse(false);
+        .findById(userId)
+        .map(
+            user -> {
+              boolean removed =
+                  user.getConsents().removeIf(consent -> consent.getId().equals(consentId));
+              if (removed) {
+                userRepository.save(user);
+              }
+              return removed;
+            })
+        .orElse(false);
   }
 
   /**
@@ -523,24 +523,24 @@ public class UserService {
    */
   public boolean removeConsentedAttribute(String userId, String consentId, String attributeId) {
     return userRepository
-            .findById(userId)
-            .flatMap(
-                    user -> {
-                      Optional<Consent> consentOpt =
-                              user.getConsents().stream().filter(c -> c.getId().equals(consentId)).findFirst();
+        .findById(userId)
+        .flatMap(
+            user -> {
+              Optional<Consent> consentOpt =
+                  user.getConsents().stream().filter(c -> c.getId().equals(consentId)).findFirst();
 
-                      if (consentOpt.isPresent()) {
-                        Consent consent = consentOpt.get();
-                        boolean attributeRemoved = consent.getSharedAttributes().remove(attributeId);
-                        // Save only if the attribute was actually present and removed.
-                        if (attributeRemoved) {
-                          userRepository.save(user);
-                          return Optional.of(true);
-                        }
-                      }
-                      return Optional.empty();
-                    })
-            .orElse(false);
+              if (consentOpt.isPresent()) {
+                Consent consent = consentOpt.get();
+                boolean attributeRemoved = consent.getSharedAttributes().remove(attributeId);
+                // Save only if the attribute was actually present and removed.
+                if (attributeRemoved) {
+                  userRepository.save(user);
+                  return Optional.of(true);
+                }
+              }
+              return Optional.empty();
+            })
+        .orElse(false);
   }
 
   /**
@@ -549,23 +549,23 @@ public class UserService {
    * @param userId The ID of the user.
    * @param clientId The client identifier.
    * @return An Optional containing a list of consented IdentityAttributes, or empty if the user or
-   * consent is not found.
+   *     consent is not found.
    */
   public Optional<List<IdentityAttribute>> getConsentedAttributes(String userId, String clientId) {
     return userRepository
-            .findById(userId)
-            .flatMap(
-                    user ->
-                            user.getConsents().stream()
-                                    .filter(consent -> consent.getClientId().equals(clientId))
-                                    .findFirst()
-                                    .map(
-                                            consent -> {
-                                              List<String> consentedAttrIds = consent.getSharedAttributes();
-                                              return user.getAttributes().stream()
-                                                      .filter(attr -> consentedAttrIds.contains(attr.getId()))
-                                                      .collect(Collectors.toList());
-                                            }));
+        .findById(userId)
+        .flatMap(
+            user ->
+                user.getConsents().stream()
+                    .filter(consent -> consent.getClientId().equals(clientId))
+                    .findFirst()
+                    .map(
+                        consent -> {
+                          List<String> consentedAttrIds = consent.getSharedAttributes();
+                          return user.getAttributes().stream()
+                              .filter(attr -> consentedAttrIds.contains(attr.getId()))
+                              .collect(Collectors.toList());
+                        }));
   }
 
   /**
@@ -577,17 +577,17 @@ public class UserService {
    */
   public void auditAccess(String userId, String consentId) {
     userRepository
-            .findById(userId)
-            .ifPresent(
-                    user -> {
-                      Optional<Consent> consentOpt =
-                              user.getConsents().stream().filter(c -> c.getId().equals(consentId)).findFirst();
+        .findById(userId)
+        .ifPresent(
+            user -> {
+              Optional<Consent> consentOpt =
+                  user.getConsents().stream().filter(c -> c.getId().equals(consentId)).findFirst();
 
-                      if (consentOpt.isPresent()) {
-                        Consent consent = consentOpt.get();
-                        consent.getAccessedAt().add(new Date());
-                        userRepository.save(user);
-                      }
-                    });
+              if (consentOpt.isPresent()) {
+                Consent consent = consentOpt.get();
+                consent.getAccessedAt().add(new Date());
+                userRepository.save(user);
+              }
+            });
   }
 }

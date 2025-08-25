@@ -93,7 +93,7 @@ class ContextControllerIntegrationTest {
   @WithMockUser(username = "context.user.int")
   void Given_AuthenticatedUser_When_GetAllContexts_Then_ReturnListOfContexts() throws Exception {
     mockMvc
-        .perform(get("/api/users/me/contexts").contentType(MediaType.APPLICATION_JSON))
+        .perform(get("/api/v1/users/me/contexts").contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$.length()").value(2))
@@ -112,7 +112,7 @@ class ContextControllerIntegrationTest {
 
     mockMvc
         .perform(
-            post("/api/users/me/contexts")
+            post("/api/v1/users/me/contexts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(newContext)))
         .andExpect(status().isCreated())
@@ -131,7 +131,7 @@ class ContextControllerIntegrationTest {
   @DisplayName("Should return 401 UNAUTHORIZED when unauthenticated user tries to get contexts")
   void Given_UnauthenticatedUser_When_GetAllContexts_Then_ReturnsUnauthorized() throws Exception {
     mockMvc
-        .perform(get("/api/users/me/contexts").contentType(MediaType.APPLICATION_JSON))
+        .perform(get("/api/v1/users/me/contexts").contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isUnauthorized());
   }
 
@@ -147,7 +147,7 @@ class ContextControllerIntegrationTest {
 
     mockMvc
         .perform(
-            put("/api/users/me/contexts/{contextId}", testContextPersonal.getId())
+            put("/api/v1/users/me/contexts/{contextId}", testContextPersonal.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updatedContext)))
         .andExpect(status().isOk())
@@ -175,7 +175,7 @@ class ContextControllerIntegrationTest {
 
     mockMvc
         .perform(
-            put("/api/users/me/contexts/{contextId}", nonExistentContext.getId())
+            put("/api/v1/users/me/contexts/{contextId}", nonExistentContext.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(nonExistentContext)))
         .andExpect(status().isNotFound());
@@ -192,7 +192,7 @@ class ContextControllerIntegrationTest {
       Given_AuthenticatedUserAndExistingContext_When_DeleteContext_Then_ContextIsDeletedAndReturnsNoContent()
           throws Exception {
     mockMvc
-        .perform(delete("/api/users/me/contexts/{contextId}", testContextPersonal.getId()))
+        .perform(delete("/api/v1/users/me/contexts/{contextId}", testContextPersonal.getId()))
         .andExpect(status().isNoContent());
 
     // Verify deletion in the database
@@ -217,7 +217,7 @@ class ContextControllerIntegrationTest {
   void Given_AuthenticatedUserAndNonExistentContext_When_DeleteContext_Then_ReturnsNotFound()
       throws Exception {
     mockMvc
-        .perform(delete("/api/users/me/contexts/{contextId}", "non-existent-ctx-delete"))
+        .perform(delete("/api/v1/users/me/contexts/{contextId}", "non-existent-ctx-delete"))
         .andExpect(status().isNotFound());
 
     // Verify no changes to user's contexts in the database via UserService

@@ -54,10 +54,10 @@ public class SecurityConfig {
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/v1/auth/**")
-                    .permitAll()
-                    .requestMatchers("/api/v1/auth/attributes")
+                auth.requestMatchers("/api/v1/auth/attributes")
                     .authenticated()
+                    .requestMatchers("/api/v1/auth/**")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .build();
