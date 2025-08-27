@@ -1,4 +1,5 @@
 import React, {useState, useRef, useMemo} from 'react';
+import {useNavigate} from 'react-router-dom';
 
 import {
   VStack,
@@ -52,16 +53,16 @@ import {truncateText} from "shared/util/text";
  * @param {Function} updateAttribute - Function from the store to update an existing attribute.
  * @param {Function} deleteAttribute - Function from the store to delete an attribute.
  * @param {Function} fetchIdentityData - Function to re-fetch data after actions.
- * @param {Function} setCurrentPage - Function to set the current page in the dashboard (used for navigation).
  */
 const AttributesContent = ({
                              attributes,
                              addAttribute,
                              updateAttribute,
                              deleteAttribute,
-                             fetchIdentityData,
-                             setCurrentPage
+                             fetchIdentityData
                            }) => {
+
+  const navigate = useNavigate();
 
   // Color mode values for consistent styling
   const cardBg = useColorModeValue('gray.50', 'gray.700');
@@ -253,7 +254,7 @@ const AttributesContent = ({
             <Button
               variant="link"
               colorScheme="brand"
-              onClick={() => setCurrentPage('contexts')}
+              onClick={() => navigate('/dashboard/contexts')}
               fontWeight="bold"
               fontSize="lg"
             >

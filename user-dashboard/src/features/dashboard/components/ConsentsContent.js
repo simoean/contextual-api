@@ -18,16 +18,18 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Flex,
+  Tag,
+  TagLabel,
   Spinner,
   IconButton,
   Select,
   FormControl,
   FormLabel,
-  Checkbox, // New import for the checkboxes
-  CheckboxGroup, // New import for the checkboxes
+  Checkbox,
+  CheckboxGroup,
 } from '@chakra-ui/react';
 
-import {FaTrashAlt, FaBan, FaClock} from 'react-icons/fa';
+import {FaTrashAlt, FaBan, FaClock, FaCalendarAlt, FaHistory} from 'react-icons/fa';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 import {fetchConsents, revokeConsent, removeAttributeFromConsent, recordConsent} from 'shared/api/authService';
@@ -46,10 +48,10 @@ const TokenValidity = {
  * Displays a list of user consents and provides revocation actions.
  *
  * @param {Function} fetchIdentityData - Function to re-fetch identity data after actions.
- * @param {Function} setUserInfo - Function to update user information.
  * @param {Array<Object>} attributes - Array of all available attribute objects.
+ * @param {Array<Object>} contexts - Array of all available context objects.
  */
-const ConsentContent = ({fetchIdentityData, attributes}) => {
+const ConsentContent = ({fetchIdentityData, attributes, contexts}) => {
   // Color mode values for consistent styling
   const cardBg = useColorModeValue('gray.50', 'gray.700');
   const cardBorderColor = useColorModeValue('gray.200', 'gray.600');
@@ -332,20 +334,52 @@ const ConsentContent = ({fetchIdentityData, attributes}) => {
               onClick={() => handleEditClick(consent)}
             >
               <VStack align="flex-start" spacing={3} h="full">
-                <HStack w="full" justifyContent="flex-start">
-                  <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={1}>
-                    Client:
-                  </Text>
-                  <Text fontSize="xl" color={textColor} noOfLines={1}>
-                    {consent.clientId}
-                  </Text>
+                <HStack w="full" justifyContent="space-between" alignItems="flex-start">
+                  <Box>
+                    <HStack>
+                      <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={1}>
+                        Client:
+                      </Text>
+                      <Text fontSize="xl" color={textColor} noOfLines={1}>
+                        {consent.clientId}
+                      </Text>
+                    </HStack>
+                  </Box>
+
+                  {(() => {
+                    // Find the context that matches the consent's contextId
+                    const context = contexts.find(c => c.id === consent.contextId);
+                    return context ? (
+                      <Tag size="md" colorScheme="purple" borderRadius="full" variant="solid">
+                        <TagLabel>{context.name}</TagLabel>
+                      </Tag>
+                    ) : null;
+                  })()}
                 </HStack>
 
-                {/* Display token validity on the card */}
+                {/* Display consent info on the card */}
                 <Flex alignItems="center" mt={2}>
                   <Text fontSize="sm" fontWeight="semibold" color="gray.500" mr={2}>Token Validity:</Text>
                   <Text fontSize="sm" color={textColor}>
                     {consent.tokenValidity ? TokenValidity[consent.tokenValidity] : 'N/A'}
+                  </Text>
+                </Flex>
+
+                <Flex alignItems="center" mt={1}>
+                  <FaCalendarAlt color="gray" style={{ marginRight: '8px' }} />
+                  <Text fontSize="sm" fontWeight="semibold" color="gray.500" mr={2}>Granted:</Text>
+                  <Text fontSize="sm" color={textColor}>
+                    {new Date(consent.createdAt).toLocaleDateString()}
+                  </Text>
+                </Flex>
+
+                <Flex alignItems="center" mt={1}>
+                  <FaHistory color="gray" style={{ marginRight: '8px' }} />
+                  <Text fontSize="sm" fontWeight="semibold" color="gray.500" mr={2}>Last Accessed:</Text>
+                  <Text fontSize="sm" color={textColor}>
+                    {consent.accessedAt && consent.accessedAt.length > 0
+                      ? new Date(consent.accessedAt[consent.accessedAt.length - 1]).toLocaleString()
+                      : 'Never'}
                   </Text>
                 </Flex>
 
@@ -366,7 +400,7 @@ const ConsentContent = ({fetchIdentityData, attributes}) => {
                           colorScheme="red"
                           variant="ghost"
                           data-testid={`remove-attribute-button-${attr.id}`}
-                          onClick={() => confirmRemoveAttribute(consent.id, attr)}
+                          onClick={(e) => { e.stopPropagation(); confirmRemoveAttribute(consent.id, attr) }}
                         />
                       </Flex>
                     ))
@@ -390,7 +424,7 @@ const ConsentContent = ({fetchIdentityData, attributes}) => {
                     data-testid={`edit-validity-button-${consent.id}`}
                     colorScheme={buttonColorScheme}
                     variant="outline"
-                    onClick={() => handleEditClick(consent)}
+                    onClick={(e) => { e.stopPropagation(); handleEditClick(consent) }}
                   >
                     Edit
                   </Button>
@@ -400,7 +434,7 @@ const ConsentContent = ({fetchIdentityData, attributes}) => {
                     data-testid={`revoke-all-button-${consent.id}`}
                     colorScheme="red"
                     variant="solid"
-                    onClick={() => confirmRevokeAll(consent)}
+                    onClick={(e) => { e.stopPropagation(); confirmRevokeAll(consent) }}
                   >
                     Revoke
                   </Button>

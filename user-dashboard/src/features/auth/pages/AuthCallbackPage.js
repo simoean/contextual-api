@@ -22,11 +22,11 @@ import {
   HStack,
   Select,
   IconButton,
-  Tootip,
   Spacer,
   Box,
   Image,
-  useColorMode, Tooltip
+  useColorMode,
+  Tooltip
 } from '@chakra-ui/react';
 
 import {FaTrashAlt, FaEdit} from 'react-icons/fa';

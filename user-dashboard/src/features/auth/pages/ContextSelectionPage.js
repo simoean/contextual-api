@@ -144,19 +144,18 @@ const ContextSelectionPage = () => {
    */
   useEffect(() => {
     if (selectedContextId) {
-      const initialSelected = filteredAttributes.map(attr => attr.id);
-      // The dependency `selectedAttributeIds` is needed here to prevent infinite loops.
-      // We only want to update the state if it's different.
-      const areArraysEqual = initialSelected.length === selectedAttributeIds.length && initialSelected.every(id => selectedAttributeIds.includes(id));
-      if (!areArraysEqual) {
-        setSelectedAttributeIds(initialSelected);
-      }
+      // Get all the visible attribute IDs for the newly selected context
+      const attributesForContext = attributes
+        .filter(attr => attr.contextIds?.includes(selectedContextId) && attr.visible)
+        .map(attr => attr.id);
+      // Set them as the selected attributes
+      setSelectedAttributeIds(attributesForContext);
     } else {
-      if (selectedAttributeIds.length > 0) {
-        setSelectedAttributeIds([]);
-      }
+      // If no context is selected, clear the attributes
+      setSelectedAttributeIds([]);
     }
-  }, [selectedContextId, filteredAttributes, selectedAttributeIds, setSelectedAttributeIds]);
+    // Only run this effect when the selected context ID changes
+  }, [selectedContextId, attributes, setSelectedAttributeIds]);
 
   /**
    * Handle Context Button Click

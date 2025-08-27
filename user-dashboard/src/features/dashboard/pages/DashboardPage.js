@@ -100,7 +100,6 @@ const DashboardPage = () => {
    */
   useEffect(() => {
     // Get the last part of the pathname and use it to set the current page.
-    // Example: '/dashboard/connections' -> 'connections'
     const pathSegments = location.pathname.split('/');
     const lastSegment = pathSegments[pathSegments.length - 1];
 
@@ -382,7 +381,6 @@ const DashboardPage = () => {
                     updateAttribute={updateAttribute}
                     deleteAttribute={deleteAttribute}
                     fetchIdentityData={fetchIdentityData}
-                    setCurrentPage={setCurrentPage}
                   />
                 );
               case 'consents':
@@ -390,6 +388,7 @@ const DashboardPage = () => {
                   <ConsentsContent
                     fetchIdentityData={fetchIdentityData}
                     attributes={attributes}
+                    contexts={contexts}
                   />
                 );
               case 'connections':

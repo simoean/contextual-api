@@ -32,10 +32,15 @@ export const useIdentityStore = create((set, get) => ({
       set({error: "Authentication token missing. Cannot fetch identity data.", isLoading: false});
       return;
     }
+    const config = {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
     try {
-      const contextsResponse = await axiosInstance.get('/users/me/contexts');
-      const attributesResponse = await axiosInstance.get('/users/me/attributes');
-      const connectionsResponse = await axiosInstance.get('/users/me/connections');
+      const contextsResponse = await axiosInstance.get('/users/me/contexts', config);
+      const attributesResponse = await axiosInstance.get('/users/me/attributes', config);
+      const connectionsResponse = await axiosInstance.get('/users/me/connections', config);
       set({
         contexts: contextsResponse.data,
         attributes: attributesResponse.data,
