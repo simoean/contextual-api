@@ -4,12 +4,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Represents a registration request containing user credentials. This class is used to encapsulate
  * the data sent by the client when attempting to register a new user.
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class RegisterRequest {
   @NotBlank(message = "Username cannot be empty")
