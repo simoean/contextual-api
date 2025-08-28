@@ -273,6 +273,7 @@ const AttributesContent = ({
           {displayAttributes.map((attr) => (
             <Box
               key={attr.id || `${attr.name}-${attr.value}`}
+              data-testid={`attribute-card-${attr.id}`}
               p={5}
               borderWidth="1px"
               borderRadius="lg"

@@ -92,6 +92,7 @@ const ConnectionsContent = () => {
             return (
               <Box
                 key={context.id}
+                data-testid={`connection-card-${context.name}`}
                 flex="1"
                 minW={{base: "100%", md: "300px"}}
                 p={5}

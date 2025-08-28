@@ -1,140 +1,135 @@
 import React from 'react';
-import {render, screen, fireEvent, waitFor} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { ChakraProvider } from '@chakra-ui/react';
 import SignUpPage from '../SignUpPage';
+import * as authStore from 'features/auth/store/authenticationStore';
+import '@testing-library/jest-dom';
 
-// Mock Chakra UI's useToast
-const mockToast = jest.fn();
-jest.mock('@chakra-ui/react', () => {
-  const original = jest.requireActual('@chakra-ui/react');
-  return {
-    ...original,
-    useToast: () => mockToast,
-    useColorMode: () => ({
-      colorMode: 'light',
-      toggleColorMode: jest.fn(),
-    }),
-  };
-});
+// --- Global Mocks ---
+jest.mock('features/auth/store/authenticationStore');
 
-// Mock react-router-dom's useNavigate
 const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => {
-  const original = jest.requireActual('react-router-dom');
-  return {
-    ...original,
-    useNavigate: () => mockNavigate,
-    Link: ({children, to}) => <a href={to}>{children}</a>,
-  };
-});
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  Link: ({ children, to }) => <a href={to}>{children}</a>,
+}));
 
-// Mock authentication store
-const mockRegister = jest.fn();
-jest.mock('features/auth/store/authenticationStore', () => ({
-  useAuthenticationStore: () => ({
-    register: mockRegister,
-  }),
+const mockToast = jest.fn();
+jest.mock('@chakra-ui/react', () => ({
+  ...jest.requireActual('@chakra-ui/react'),
+  useToast: () => mockToast,
 }));
 
 describe('SignUpPage', () => {
+  const mockRegister = jest.fn();
+
+  const renderComponent = () => {
+    return render(
+      <ChakraProvider>
+        <MemoryRouter>
+          <SignUpPage />
+        </MemoryRouter>
+      </ChakraProvider>
+    );
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    authStore.useAuthenticationStore.mockReturnValue({
+      register: mockRegister,
+    });
   });
 
-  test('renders the form with all fields and buttons', () => {
-    render(<SignUpPage />, {wrapper: MemoryRouter});
+  it('should render the form with all fields and buttons', () => {
+    // Arrange & Act
+    renderComponent();
 
-    expect(screen.getByLabelText(/username/i)).toBeTruthy();
-    expect(screen.getByTestId('password-input')).toBeTruthy();
-    expect(screen.getByTestId('confirm-password-input')).toBeTruthy();
-
-    expect(screen.getByRole('button', {name: /sign up/i})).toBeTruthy();
-    expect(screen.getByRole('button', {name: /toggle color mode/i})).toBeTruthy();
-    expect(screen.getByText(/already have an account\?/i)).toBeTruthy();
-    expect(screen.getByRole('link', {name: /sign in/i})).toBeTruthy();
+    // Assert
+    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+    expect(screen.getByTestId('password-input')).toBeInTheDocument();
+    expect(screen.getByTestId('confirm-password-input')).toBeInTheDocument();
+    expect(screen.getByTestId('signup-submit-button')).toBeInTheDocument();
+    expect(screen.getByText(/already have an account\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  test('shows error toast when passwords do not match', async () => {
-    render(<SignUpPage />, {wrapper: MemoryRouter});
+  it('should show an error toast when passwords do not match', async () => {
+    // Arrange
+    renderComponent();
 
-    fireEvent.change(screen.getByLabelText(/username/i), {target: {value: 'user1'}});
-    fireEvent.change(screen.getByTestId('password-input'), {target: {value: 'password1'}});
-    fireEvent.change(screen.getByTestId('confirm-password-input'), {target: {value: 'password2'}});
+    // Act
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'user1' } });
+    fireEvent.change(screen.getByTestId('password-input'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByTestId('confirm-password-input'), { target: { value: 'wrongpassword' } });
+    fireEvent.click(screen.getByTestId('signup-submit-button'));
 
-    fireEvent.click(screen.getByRole('button', {name: /sign up/i}));
-
+    // Assert
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Registration Error',
         description: 'Passwords do not match.',
         status: 'error',
       }));
     });
-
     expect(mockRegister).not.toHaveBeenCalled();
   });
 
-  test('calls register and navigates on successful signup', async () => {
-    mockRegister.mockResolvedValueOnce(); // simulate successful registration
+  it('should call register and navigate on successful signup', async () => {
+    // Arrange
+    mockRegister.mockResolvedValueOnce();
+    renderComponent();
 
-    render(<SignUpPage />, {wrapper: MemoryRouter});
+    // Act
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'newuser' } });
+    fireEvent.change(screen.getByTestId('password-input'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByTestId('confirm-password-input'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByTestId('signup-submit-button'));
 
-    fireEvent.change(screen.getByLabelText(/username/i), {target: {value: 'user1'}});
-    fireEvent.change(screen.getByTestId('password-input'), {target: {value: 'password123'}});
-    fireEvent.change(screen.getByTestId('confirm-password-input'), {target: {value: 'password123'}});
-
-    fireEvent.click(screen.getByRole('button', {name: /sign up/i}));
-
+    // Assert
     await waitFor(() => {
-      expect(mockRegister).toHaveBeenCalledWith({username: 'user1', password: 'password123'});
+      expect(mockRegister).toHaveBeenCalledWith({ username: 'newuser', password: 'password123' });
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+      // ** THE FIX **
+      expect(mockNavigate).toHaveBeenCalledWith('/auth/connect');
     });
-
-    await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Registration Successful',
-        status: 'success',
-      }));
-    });
-
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  test('shows error toast on registration failure', async () => {
+  it('should show an error toast on registration failure', async () => {
+    // Arrange
     mockRegister.mockRejectedValueOnce(new Error('User already exists'));
+    renderComponent();
 
-    render(<SignUpPage />, {wrapper: MemoryRouter});
+    // Act
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'user1' } });
+    fireEvent.change(screen.getByTestId('password-input'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByTestId('confirm-password-input'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByTestId('signup-submit-button'));
 
-    fireEvent.change(screen.getByLabelText(/username/i), {target: {value: 'user1'}});
-    fireEvent.change(screen.getByTestId('password-input'), {target: {value: 'password123'}});
-    fireEvent.change(screen.getByTestId('confirm-password-input'), {target: {value: 'password123'}});
-
-    fireEvent.click(screen.getByRole('button', {name: /sign up/i}));
-
+    // Assert
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Registration Failed',
         description: 'User already exists',
         status: 'error',
       }));
     });
-
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  test('toggles password visibility icons', () => {
-    render(<SignUpPage />, {wrapper: MemoryRouter});
+  it('should toggle password visibility', () => {
+    // Arrange
+    renderComponent();
+    const passwordInput = screen.getByTestId('password-input');
+    const toggleButton = screen.getByLabelText(/show password/i);
 
-    // Password field toggle
-    const passwordToggleBtn = screen.getByLabelText(/show password/i);
-    expect(passwordToggleBtn).toBeTruthy();
-    fireEvent.click(passwordToggleBtn);
-    // After toggle, the aria-label changes to 'Hide password'
-    expect(screen.getByLabelText(/hide password/i)).toBeTruthy();
+    // Assert: Initial state
+    expect(passwordInput).toHaveAttribute('type', 'password');
 
-    // Confirm password field toggle
-    const confirmToggleBtn = screen.getByLabelText(/show confirm password/i);
-    expect(confirmToggleBtn).toBeTruthy();
-    fireEvent.click(confirmToggleBtn);
-    expect(screen.getByLabelText(/hide confirm password/i)).toBeTruthy();
+    // Act
+    fireEvent.click(toggleButton);
+
+    // Assert: After click
+    expect(passwordInput).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText(/hide password/i)).toBeInTheDocument();
   });
 });

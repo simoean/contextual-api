@@ -124,24 +124,27 @@ const SignInPage = () => {
     try {
       const loginClientId = storedClientId || clientId;
 
-      await login(username, password, loginClientId);
+      // ** THE FIX **
+      // Assume the login function now returns the new token and user info
+      const { accessToken: newAccessToken, userInfo: newUserInfo } = await login(username, password, loginClientId);
 
       toast({
         title: "Login Successful!", description: "You have been successfully logged in.",
         status: "success", duration: 3000, isClosable: true, position: "bottom"
       });
 
-      if (isClientFlow && accessToken) {
+      // Use the new token and user info directly from the login response
+      if (isClientFlow && newAccessToken) {
         try {
-          const userConsents = await fetchConsents(accessToken);
+          const userConsents = await fetchConsents(newAccessToken);
           const hasConsent = userConsents.some(consent => consent.clientId === clientId);
           if (hasConsent && window.opener && redirectUri) {
             window.opener.postMessage({
               type: 'CONTEXT_AUTH_SUCCESS',
               payload: {
-                token: accessToken,
-                userId: userInfo?.userId,
-                username: userInfo?.username
+                token: newAccessToken,
+                userId: newUserInfo?.userId,
+                username: newUserInfo?.username
               }
             }, redirectUri);
             window.close();
@@ -238,27 +241,45 @@ const SignInPage = () => {
           <Stack spacing={4} w="90%" mx="auto" my={4}>
             <FormControl id="username">
               <FormLabel>Username</FormLabel>
-              <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
-                     placeholder="Enter your username"/>
+              <Input
+                data-testid="username-input"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+              />
             </FormControl>
             <FormControl id="password">
               <FormLabel>Password</FormLabel>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                     placeholder="Enter your password"/>
+              <Input
+                data-testid="password-input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+              />
             </FormControl>
             <HStack spacing={4} mt={8} justifyContent="flex-end" w="100%">
               {isClientFlow && (
-                <Button variant="solid" colorScheme="gray" onClick={handleCancel} size="lg" flexGrow={1}>
+                <Button data-testid="cancel-button" variant="solid" colorScheme="gray" onClick={handleCancel} size="lg" flexGrow={1}>
                   Cancel
                 </Button>
               )}
               {isDashboardDirectAccess && (
-                <Button variant="outline" colorScheme="brand" onClick={handleSignUpClick} size="lg" flexGrow={1}>
+                <Button data-testid="signup-button" variant="outline" colorScheme="brand" onClick={handleSignUpClick} size="lg" flexGrow={1}>
                   Sign Up
                 </Button>
               )}
-              <Button type="submit" colorScheme="brand" isLoading={loading} loadingText="Signing In..." size="lg"
-                      flexGrow={1} maxW={isDashboardDirectAccess ? "auto" : "100%"}>
+              <Button
+                data-testid="signin-button"
+                type="submit"
+                colorScheme="brand"
+                isLoading={loading}
+                loadingText="Signing In..."
+                size="lg"
+                flexGrow={1}
+                maxW={isDashboardDirectAccess ? "auto" : "100%"}
+              >
                 Sign In
               </Button>
             </HStack>

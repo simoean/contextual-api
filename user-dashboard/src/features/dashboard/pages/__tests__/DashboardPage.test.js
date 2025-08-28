@@ -3,12 +3,20 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import DashboardPage from '../DashboardPage';
 import * as authStore from 'features/auth/store/authenticationStore';
 import * as identityStore from 'features/dashboard/store/identityStore';
-import { useColorMode } from '@chakra-ui/react'; // Import useColorMode to mock it
-import '@testing-library/jest-dom'; // Ensure jest-dom matchers are available
+import { useColorMode } from '@chakra-ui/react';
+import '@testing-library/jest-dom';
 
-// --- Global Mocks ---
+// Global Mocks
 jest.mock('features/auth/store/authenticationStore');
 jest.mock('features/dashboard/store/identityStore');
+
+// Mock child components to isolate DashboardPage logic
+jest.mock('features/dashboard/components/ContextsContent', () => () => <div>Contexts Content</div>);
+jest.mock('features/dashboard/components/AttributesContent', () => () => <div>Attributes Content</div>);
+jest.mock('features/dashboard/components/ConsentsContent', () => () => <div>Consents Content</div>);
+jest.mock('features/dashboard/components/ConnectionsContent', () => () => <div>Connections Content</div>);
+
+
 jest.mock('@chakra-ui/react', () => {
   const actualChakra = jest.requireActual('@chakra-ui/react');
   return {
@@ -17,292 +25,271 @@ jest.mock('@chakra-ui/react', () => {
   };
 });
 
-// Mock react-router-dom's useNavigate
+// Mock react-router-dom hooks
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
+  useLocation: () => ({ pathname: '/dashboard/contexts' }) // Default location
 }));
+
 
 describe('DashboardPage', () => {
   // --- Given: Mock Functions (Set up once for the suite) ---
   const mockLogout = jest.fn();
   const mockToggleColorMode = jest.fn();
   const mockFetchIdentityData = jest.fn();
-  const mockAddContext = jest.fn();
-  const mockUpdateContext = jest.fn();
-  const mockDeleteContext = jest.fn();
-  const mockAddAttribute = jest.fn();
-  const mockUpdateAttribute = jest.fn();
-  const mockDeleteAttribute = jest.fn();
 
-  beforeEach(() => {
-    // --- Given: Reset mocks and initial state for each test ---
-    jest.clearAllMocks(); // Resets all mocks and their call history
+  // Reusable default states for the stores
+  const defaultAuthStoreState = {
+    userInfo: { username: 'TestUser' },
+    isAuthenticated: true,
+    isLoading: false,
+    logout: mockLogout,
+    accessToken: 'fake-token',
+  };
 
-    // Reset specific mock implementations if they were set with .mockImplementationOnce etc.
-    mockLogout.mockReset();
-    mockToggleColorMode.mockReset();
-    mockFetchIdentityData.mockReset();
-    mockAddContext.mockReset();
-    mockUpdateContext.mockReset();
-    mockDeleteContext.mockReset();
-    mockAddAttribute.mockReset();
-    mockUpdateAttribute.mockReset();
-    mockDeleteAttribute.mockReset();
-    mockNavigate.mockReset(); // Reset navigate mock
+  const defaultIdentityStoreState = {
+    contexts: [{id: 'ctx1', name: 'Personal'}],
+    attributes: [{id: 'attr1', name: 'Email'}],
+    fetchIdentityData: mockFetchIdentityData,
+    isLoading: false,
+    error: null,
+    addContext: jest.fn(),
+    updateContext: jest.fn(),
+    deleteContext: jest.fn(),
+    addAttribute: jest.fn(),
+    updateAttribute: jest.fn(),
+    deleteAttribute: jest.fn(),
+  };
 
-    // Mock useAuthenticationStore's default successful state
-    authStore.useAuthenticationStore.mockReturnValue({
-      userInfo: { username: 'TestUser', selectedContext: null },
-      isAuthenticated: true,
-      isLoading: false,
-      logout: mockLogout,
-      accessToken: 'fake-token',
-      setUserInfo: jest.fn(), // Ensure setUserInfo is also mocked if used by children
-    });
-
-    // Mock useIdentityStore's default successful state
-    identityStore.useIdentityStore.mockReturnValue({
-      contexts: [],
-      attributes: [],
-      fetchIdentityData: mockFetchIdentityData,
-      isLoading: false,
-      error: null,
-      addContext: mockAddContext,
-      updateContext: mockUpdateContext,
-      deleteContext: mockDeleteContext,
-      addAttribute: mockAddAttribute,
-      updateAttribute: mockUpdateAttribute,
-      deleteAttribute: mockDeleteAttribute,
-    });
-
-    // Mock useColorMode
+  // A helper function to set up the default successful state for stores
+  const setupSuccessMocks = () => {
+    authStore.useAuthenticationStore.mockReturnValue(defaultAuthStoreState);
+    identityStore.useIdentityStore.mockReturnValue(defaultIdentityStoreState);
     useColorMode.mockReturnValue({
       colorMode: 'light',
       toggleColorMode: mockToggleColorMode,
     });
+  };
+
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    jest.clearAllMocks();
+    setupSuccessMocks(); // Setup default success state
   });
 
-  // Loading and Error States
+  // --- Loading, Error, and Auth State Tests ---
+  describe('Initial State Rendering', () => {
+    it('should display a loading spinner when auth or identity data is loading', () => {
+      // Arrange
+      authStore.useAuthenticationStore.mockReturnValue({ isLoading: true });
 
-  it('Given: Auth store or identity data is loading, When: DashboardPage renders, Then: Displays a loading spinner and message', () => {
-    // Given: Authentication is loading
-    authStore.useAuthenticationStore.mockReturnValue({
-      userInfo: null,
-      isAuthenticated: false,
-      isLoading: true,
-      logout: mockLogout,
-      accessToken: null,
-      setUserInfo: jest.fn(),
+      // Act
+      render(<DashboardPage />);
+
+      // Assert
+      expect(screen.getByText(/loading dashboard data/i)).toBeInTheDocument();
     });
 
-    // When: DashboardPage is rendered
-    render(<DashboardPage />);
+    it('should display an error alert with a retry button when there is a store error', () => {
+      // Arrange
+      identityStore.useIdentityStore.mockReturnValue({
+        ...identityStore.useIdentityStore(),
+        error: 'Failed to load data',
+        fetchIdentityData: mockFetchIdentityData,
+      });
+      render(<DashboardPage />);
 
-    // Then: A loading message and spinner should be displayed
-    expect(screen.getByText(/loading dashboard data/i)).toBeInTheDocument();
-  });
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: /try again/i }));
 
-  it('Given: Identity store has an error, When: DashboardPage renders, Then: Displays an error alert with a retry button that calls fetchIdentityData', () => {
-    // Given: Identity store returns an error
-    identityStore.useIdentityStore.mockReturnValue({
-      contexts: [],
-      attributes: [],
-      fetchIdentityData: mockFetchIdentityData,
-      isLoading: false,
-      error: 'Failed to load data',
-      addContext: mockAddContext, updateContext: mockUpdateContext, deleteContext: mockDeleteContext,
-      addAttribute: mockAddAttribute, updateAttribute: mockUpdateAttribute, deleteAttribute: mockDeleteAttribute,
-    });
-
-    // When: DashboardPage is rendered
-    render(<DashboardPage />);
-
-    // Then: An error alert with specific messages should be displayed
-    expect(screen.getByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText(/error loading data/i)).toBeInTheDocument();
-    expect(screen.getByText(/failed to load data/i)).toBeInTheDocument();
-
-    // When: Retry button is clicked
-    const retryButton = screen.getByRole('button', { name: /try again/i });
-    fireEvent.click(retryButton);
-
-    // Then: fetchIdentityData should be called with the access token
-    expect(mockFetchIdentityData).toHaveBeenCalledWith('fake-token');
-  });
-
-  it('Given: User is unauthenticated and auth is not loading, When: DashboardPage renders, Then: Redirects to the auth page', async () => {
-    // Given: Authentication state indicates not authenticated and not loading
-    authStore.useAuthenticationStore.mockReturnValue({
-      userInfo: null,
-      isAuthenticated: false,
-      isLoading: false,
-      logout: mockLogout,
-      accessToken: null,
-      setUserInfo: jest.fn(),
-    });
-
-    // When: DashboardPage is rendered
-    render(<DashboardPage />);
-
-    // Then: useNavigate should be called to redirect to '/auth'
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/auth');
-    });
-  });
-
-  it('Given: User is unauthenticated and auth is not loading AND has an accessToken, When: DashboardPage renders, Then: Redirects to the auth page', async () => {
-    // Given: Authentication state indicates not authenticated but has a token (should still redirect)
-    authStore.useAuthenticationStore.mockReturnValue({
-      userInfo: null,
-      isAuthenticated: false,
-      isLoading: false,
-      logout: mockLogout,
-      accessToken: 'stale-token',
-      setUserInfo: jest.fn(),
-    });
-
-    // When: DashboardPage is rendered
-    render(<DashboardPage />);
-
-    // Then: useNavigate should be called to redirect to '/auth'
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/auth');
-    });
-  });
-
-  // Main Layout and Interactions
-
-  it('Given: User is authenticated and data is loaded, When: DashboardPage renders, Then: Displays the main dashboard layout with user greeting and navigation', () => {
-    // Given: All stores return success states (default beforeEach setup)
-    // When: DashboardPage is rendered
-    render(<DashboardPage />);
-
-    // Then: Header with username greeting should be present
-    expect(screen.getByText(/hello, testuser/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /contextual identity api/i })).toBeInTheDocument();
-
-    // Verify: Sidebar navigation items are present
-    expect(screen.getByTestId('nav-contexts')).toBeInTheDocument();
-    expect(screen.getByTestId('nav-attributes')).toBeInTheDocument();
-  });
-
-  it('Given: Dashboard is rendered, When: Color mode toggle button is clicked, Then: toggleColorMode is called', () => {
-    // Given: DashboardPage is rendered
-    render(<DashboardPage />);
-
-    // When: Color mode toggle button is clicked
-    const toggleButton = screen.getByLabelText(/toggle color mode/i);
-    fireEvent.click(toggleButton);
-
-    // Then: mockToggleColorMode should be called
-    expect(mockToggleColorMode).toHaveBeenCalledTimes(1);
-  });
-
-  it('Given: Dashboard is rendered, When: Sidebar toggle button is clicked, Then: Sidebar expands and collapses, updating button text', () => {
-    // Given: DashboardPage is rendered (sidebar starts collapsed by default in component)
-    render(<DashboardPage />);
-
-    const toggleSidebarButton = screen.getByRole('button', {
-      name: /expand sidebar/i,
-    });
-
-    // When: Sidebar toggle button is clicked to expand
-    fireEvent.click(toggleSidebarButton);
-
-    // Then: Button text should change to "Collapse Sidebar"
-    expect(screen.getByRole('button', { name: /collapse sidebar/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /expand sidebar/i })).not.toBeInTheDocument();
-
-    // When: Sidebar toggle button is clicked again to collapse
-    fireEvent.click(toggleSidebarButton);
-
-    // Then: Button text should change back to "Expand Sidebar"
-    expect(screen.getByRole('button', { name: /expand sidebar/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /collapse sidebar/i })).not.toBeInTheDocument();
-  });
-
-  it('Given: Dashboard is rendered, When: Sign out button is clicked, Then: User is logged out', () => {
-    // Given: DashboardPage is rendered
-    render(<DashboardPage />);
-
-    // When: Sign out button is clicked
-    const signOutButton = screen.getByLabelText(/sign out/i);
-    fireEvent.click(signOutButton);
-
-    // Then: logout function should be called
-    expect(mockLogout).toHaveBeenCalledTimes(1);
-  });
-
-  it('Given: Dashboard is rendered, When: "Attributes" nav item is clicked, Then: AttributesContent is rendered', () => {
-    // Given: DashboardPage is rendered with default contexts and attributes
-    render(<DashboardPage />);
-
-    // When: "Attributes" navigation item is clicked
-    const attributesNavItem = screen.getByTestId('nav-attributes');
-    fireEvent.click(attributesNavItem);
-
-    // Then: AttributesContent should be rendered (check for unique text in AttributesContent)
-    expect(screen.getByTestId('attribute-heading')).toBeInTheDocument();
-    expect(screen.queryByTestId('context-heading')).not.toBeInTheDocument();
-  });
-
-  it('Given: Dashboard is rendered and AttributesContent is active, When: "Contexts" nav item is clicked, Then: ContextsContent is rendered', () => {
-    // Given: DashboardPage is rendered and "Attributes" page is active
-    render(<DashboardPage />);
-    fireEvent.click(screen.getByTestId('nav-attributes'));
-
-    // When: "Contexts" navigation item is clicked
-    const contextsNavItem = screen.getByTestId('nav-contexts');
-    fireEvent.click(contextsNavItem);
-
-    // Then: ContextsContent should be rendered (check for unique text in ContextsContent)
-    expect(screen.getByText(/your contexts/i)).toBeInTheDocument();
-    expect(screen.queryByText(/your attributes/i)).not.toBeInTheDocument();
-  });
-
-  it('Given: Initial data fetch succeeds, When: useEffect runs, Then: fetchIdentityData is called with access token', async () => {
-    // Given: authLoading is false, isAuthenticated is true, accessToken is present (default setup)
-    // When: DashboardPage is rendered, triggering useEffect
-    render(<DashboardPage />);
-
-    // Then: fetchIdentityData should be called with the accessToken
-    await waitFor(() => {
+      // Assert
+      expect(screen.getByText(/error loading data/i)).toBeInTheDocument();
       expect(mockFetchIdentityData).toHaveBeenCalledWith('fake-token');
     });
-  });
 
-  it('Given: Store error previously, When: useEffect runs, Then: fetchIdentityData is called with access token to retry', async () => {
-    // Given: Store has a previous error, and default auth state is good
-    identityStore.useIdentityStore.mockReturnValue({
-      contexts: [],
-      attributes: [],
-      fetchIdentityData: mockFetchIdentityData,
-      isLoading: false,
-      error: 'Previous error occurred',
-      addContext: mockAddContext, updateContext: mockUpdateContext, deleteContext: mockDeleteContext,
-      addAttribute: mockAddAttribute, updateAttribute: mockUpdateAttribute, deleteAttribute: mockDeleteAttribute,
-    });
+    it('should redirect to the auth page if the user is not authenticated', async () => {
+      // Arrange
+      authStore.useAuthenticationStore.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+        accessToken: null,
+      });
 
-    // When: DashboardPage is rendered
-    render(<DashboardPage />);
+      // Act
+      render(<DashboardPage />);
 
-    // Then: fetchIdentityData should be called (as it retries on storeError)
-    await waitFor(() => {
-      expect(mockFetchIdentityData).toHaveBeenCalledWith('fake-token');
+      // Assert
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/auth');
+      });
     });
   });
 
-  it('Given: Contexts or attributes are empty, When: useEffect runs, Then: fetchIdentityData is called with access token', async () => {
-    // Given: Contexts are empty (default setup has contexts empty, so it will trigger a fetch)
-    render(<DashboardPage />);
 
-    // When: useEffect runs
-    // Then: fetchIdentityData should be called
-    await waitFor(() => {
-      expect(mockFetchIdentityData).toHaveBeenCalledWith('fake-token');
+  // --- Main Layout and Interaction Tests ---
+  describe('Authenticated User Interactions', () => {
+    it('should display the main dashboard layout with user greeting', () => {
+      // Arrange & Act
+      render(<DashboardPage />);
+
+      // Assert
+      expect(screen.getByText(/hello, testuser/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /contextual identity api/i })).toBeInTheDocument();
+    });
+
+    it('should call toggleColorMode when the color mode button is clicked', () => {
+      // Arrange
+      render(<DashboardPage />);
+
+      // Act
+      fireEvent.click(screen.getByLabelText(/toggle color mode/i));
+
+      // Assert
+      expect(mockToggleColorMode).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call logout when the sign out button is clicked', () => {
+      // Arrange
+      render(<DashboardPage />);
+
+      // Act
+      fireEvent.click(screen.getByLabelText(/sign out/i));
+
+      // Assert
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+    });
+
+    it('should expand and collapse the sidebar when the toggle button is clicked', () => {
+      // Arrange
+      render(<DashboardPage />);
+      const toggleButton = screen.getByLabelText(/expand sidebar/i);
+
+      // Act & Assert for expand
+      fireEvent.click(toggleButton);
+      expect(screen.getByLabelText(/collapse sidebar/i)).toBeInTheDocument();
+
+      // Act & Assert for collapse
+      fireEvent.click(toggleButton);
+      expect(screen.getByLabelText(/expand sidebar/i)).toBeInTheDocument();
     });
   });
 
+  // --- Navigation and Content Rendering Tests ---
+  describe('Navigation and Content Rendering', () => {
+    // Helper to re-render the component with a new URL
+    const renderWithLocation = (pathname) => {
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname });
+      return render(<DashboardPage />);
+    };
+
+    it('should render ContextsContent by default for the base dashboard URL', () => {
+      // Arrange & Act
+      renderWithLocation('/dashboard');
+
+      // Assert
+      expect(screen.getByText('Contexts Content')).toBeInTheDocument();
+    });
+
+    it('should render ContextsContent when navigating to /dashboard/contexts', () => {
+      // Arrange & Act
+      renderWithLocation('/dashboard/contexts');
+
+      // Assert
+      expect(screen.getByText('Contexts Content')).toBeInTheDocument();
+    });
+
+    it('should navigate to the attributes page and render AttributesContent when the attributes link is clicked', () => {
+      // Arrange
+      const { rerender } = renderWithLocation('/dashboard/contexts');
+      const attributesLink = screen.getByTestId('nav-attributes');
+
+      // Act
+      fireEvent.click(attributesLink);
+
+      // Assert: Navigation was triggered
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/attributes');
+
+      // Act: Simulate the URL change by re-rendering
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/dashboard/attributes' });
+      rerender(<DashboardPage />);
+
+      // Assert: The correct content is now displayed
+      expect(screen.getByText('Attributes Content')).toBeInTheDocument();
+      expect(screen.queryByText('Contexts Content')).not.toBeInTheDocument();
+    });
+
+    it('should navigate to the consents page and render ConsentsContent when the consents link is clicked', () => {
+      // Arrange
+      const { rerender } = renderWithLocation('/dashboard/contexts');
+
+      // Act
+      fireEvent.click(screen.getByTestId('nav-consents'));
+
+      // Assert
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/consents');
+
+      // Act
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/dashboard/consents' });
+      rerender(<DashboardPage />);
+
+      // Assert
+      expect(screen.getByText('Consents Content')).toBeInTheDocument();
+    });
+
+    it('should navigate to the connections page and render ConnectionsContent when the connections link is clicked', () => {
+      // Arrange
+      const { rerender } = renderWithLocation('/dashboard/contexts');
+
+      // Act
+      fireEvent.click(screen.getByTestId('nav-connections'));
+
+      // Assert
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/connections');
+
+      // Act
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/dashboard/connections' });
+      rerender(<DashboardPage />);
+
+      // Assert
+      expect(screen.getByText('Connections Content')).toBeInTheDocument();
+    });
+
+    it('should default to ContextsContent for an invalid URL path', () => {
+      // Arrange & Act
+      renderWithLocation('/dashboard/some-invalid-page');
+
+      // Assert
+      expect(screen.getByText('Contexts Content')).toBeInTheDocument();
+    });
+  });
+
+  // --- Data Fetching Logic Test ---
+  describe('Data Fetching Effect', () => {
+    it('should call fetchIdentityData if contexts are empty', async () => {
+      // Arrange
+      identityStore.useIdentityStore.mockReturnValue({
+        ...defaultIdentityStoreState,
+        contexts: [], // Override contexts to be empty for this test
+      });
+
+      // Act
+      render(<DashboardPage />);
+
+      // Assert
+      await waitFor(() => {
+        expect(mockFetchIdentityData).toHaveBeenCalledWith('fake-token');
+      });
+    });
+
+    it('should NOT call fetchIdentityData if data is already present and there is no error', () => {
+      // Arrange & Act
+      render(<DashboardPage />);
+
+      // Assert
+      expect(mockFetchIdentityData).not.toHaveBeenCalled();
+    });
+  });
 });

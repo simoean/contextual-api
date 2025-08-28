@@ -32,22 +32,21 @@ export const useAuthenticationStore = create(
         sessionStorage.removeItem('auth-storage');
       }
 
-      return {
-        // Initial state
+      const initialState = {
         isAuthenticated: false,
         accessToken: null,
         refreshToken: null,
         isLoading: true,
         userInfo: null,
         redirectFromConnections: false,
-
-        // Selection state for contexts, attributes and providers
         selectedContextId: null,
         selectedAttributeIds: [],
         connectedProviders: [],
-
-        // State for client apps
         clientId: null,
+      };
+
+      return {
+        ...initialState,
 
         // Actions
 
@@ -246,6 +245,11 @@ export const useAuthenticationStore = create(
          * Reset the selection state.
          */
         resetSelection: () => set({ selectedContextId: null, selectedAttributeIds: [] }),
+
+        /**
+         * Reset the entire store to its initial state.
+         */
+        reset: () => set(initialState),
       };
     },
     {

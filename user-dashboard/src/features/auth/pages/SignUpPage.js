@@ -199,6 +199,7 @@ const SignUpPage = () => {
             </FormControl>
 
             <Button
+              data-testid="signup-submit-button"
               type="submit"
               colorScheme="brand"
               isLoading={loading}
