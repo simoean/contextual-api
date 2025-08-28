@@ -10,17 +10,17 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: movPHMSG8X8r9vu0dvItrJrco23jO6v09rjEdubpkz8ewm9UsHO7DDDYEQM+RHAOKihGT1tIJaRaTsDrY1+ivw==
+  secret: ${JWT_SECRET:movPHMSG8X8r9vu0dvItrJrco23jO6v09rjEdubpkz8ewm9UsHO7DDDYEQM+RHAOKihGT1tIJaRaTsDrY1+ivw==}
 
 # OAuth Configuration
 oauth:
   internal:
     redirect-uri: ${OAUTH_INTERNAL_REDIRECT_URI:http://localhost:3000/auth/callback}
   google:
-    client-id: 393897977063-rt34md9e3r25c80s5q94286166u18snr.apps.googleusercontent.com
-    client-secret: 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
+    client-id: ${OAUTH_GOOGLE_CLIENT_ID:393897977063-rt34md9e3r25c80s5q94286166u18snr.apps.googleusercontent.com}
+    client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET: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}
     redirect-uri: ${OAUTH_GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/callback?provider=google}
   facebook:
-    client-id: 792054339916239
-    client-secret: 2a9b96c2b3fc5597134de61ea8a28dcd
+    client-id: ${OAUTH_FACEBOOK_CLIENT_ID:792054339916239}
+    client-secret: ${OAUTH_FACEBOOK_CLIENT_SECRET:2a9b96c2b3fc5597134de61ea8a28dcd}
     redirect-uri: ${OAUTH_FACEBOOK_REDIRECT_URI:http://localhost:8080/api/v1/auth/callback?provider=facebook}
