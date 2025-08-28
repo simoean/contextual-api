@@ -189,6 +189,23 @@ class AttributeControllerIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return 409 CONFLICT when creating an attribute with a duplicate name")
+  @WithMockUser(username = "attribute.user.int")
+  void Given_DuplicateAttributeName_When_CreateAttribute_Then_ReturnsConflict() throws Exception {
+    // "email" already exists for the testUser
+    IdentityAttribute duplicateAttribute =
+            new IdentityAttribute(null, null, "email", "another@example.com", true, Collections.emptyList());
+
+    mockMvc
+            .perform(
+                    post("/api/v1/users/me/attributes")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(duplicateAttribute)))
+            .andExpect(status().isConflict())
+            .andExpect(content().string("An attribute with the name 'email' already exists."));
+  }
+
+  @Test
   @DisplayName("Should return 401 UNAUTHORIZED when unauthenticated user tries to get attributes")
   void Given_UnauthenticatedUser_When_GetAllAttributes_Then_ReturnsUnauthorized() throws Exception {
     mockMvc
@@ -234,6 +251,29 @@ class AttributeControllerIntegrationTest {
                                             && a.getValue().equals("updated@example.com")
                                             && !a.isVisible()
                                             && a.getContextIds().contains(testContextSpecific.getId())));
+  }
+
+  @Test
+  @DisplayName("Should return 409 CONFLICT when updating an attribute to a duplicate name")
+  @WithMockUser(username = "attribute.user.int")
+  void Given_DuplicateAttributeName_When_UpdateAttribute_Then_ReturnsConflict() throws Exception {
+    // Attempting to rename "phone" to "email", which already exists
+    IdentityAttribute updatedAttribute =
+            new IdentityAttribute(
+                    attrPhoneVisibleSpecific.getId(),
+                    testUser.getId(),
+                    "email",
+                    "999-999-9999",
+                    true,
+                    Collections.emptyList());
+
+    mockMvc
+            .perform(
+                    put("/api/v1/users/me/attributes/{attributeId}", attrPhoneVisibleSpecific.getId())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(updatedAttribute)))
+            .andExpect(status().isConflict())
+            .andExpect(content().string("An attribute with the name 'email' already exists."));
   }
 
   @Test
@@ -305,7 +345,7 @@ class AttributeControllerIntegrationTest {
             Collections.singletonList(testContextGeneral.getId())
     );
 
-    // 2. A brand new attribute
+    // 2. A new attribute
     IdentityAttribute newWebsite = new IdentityAttribute(
             null,
             null,

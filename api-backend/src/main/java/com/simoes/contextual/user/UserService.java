@@ -219,12 +219,13 @@ public class UserService {
   }
 
   /**
-   * Creates a new identity attribute for a user.
+   * Creates a new identity attribute for a user after validating the attribute name is unique.
    *
    * @param userId The ID of the user for whom the attribute is to be created.
    * @param newAttribute The IdentityAttribute object to create.
-   * @return An Optional containing the created IdentityAttribute if successful, or empty if the
-   *     user does not exist.
+   * @return An Optional containing the created IdentityAttribute if successful.
+   * @throws IllegalArgumentException if an attribute with the same name already exists for the
+   *     user.
    */
   public Optional<IdentityAttribute> createAttribute(
       String userId, IdentityAttribute newAttribute) {
@@ -232,6 +233,16 @@ public class UserService {
         .findById(userId)
         .map(
             user -> {
+              // Check if an attribute with the same name already exists.
+              boolean nameExists =
+                  user.getAttributes().stream()
+                      .anyMatch(attr -> attr.getName().equalsIgnoreCase(newAttribute.getName()));
+
+              if (nameExists) {
+                throw new IllegalArgumentException(
+                    "An attribute with the name '" + newAttribute.getName() + "' already exists.");
+              }
+
               String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
               newAttribute.setId(newId);
               newAttribute.setUserId(userId);
@@ -247,13 +258,14 @@ public class UserService {
   }
 
   /**
-   * Updates an existing identity attribute for a user.
+   * Updates an existing identity attribute for a user after validating the new name is unique.
    *
    * @param userId The ID of the user whose attribute is to be updated.
    * @param attributeId The ID of the attribute to update.
    * @param updatedAttribute The IdentityAttribute object with updated values.
-   * @return An Optional containing the updated IdentityAttribute if successful, or empty if the
-   *     user or attribute was not found.
+   * @return An Optional containing the updated IdentityAttribute if successful.
+   * @throws IllegalArgumentException if the new attribute name is already in use by another
+   *     attribute for the user.
    */
   public Optional<IdentityAttribute> updateAttribute(
       String userId, String attributeId, IdentityAttribute updatedAttribute) {
@@ -261,6 +273,21 @@ public class UserService {
         .findById(userId)
         .map(
             user -> {
+              // Check if the new name is already used by *another* attribute.
+              boolean nameExists =
+                  user.getAttributes().stream()
+                      .anyMatch(
+                          attr ->
+                              !attr.getId().equals(attributeId)
+                                  && attr.getName().equalsIgnoreCase(updatedAttribute.getName()));
+
+              if (nameExists) {
+                throw new IllegalArgumentException(
+                    "An attribute with the name '"
+                        + updatedAttribute.getName()
+                        + "' already exists.");
+              }
+
               List<IdentityAttribute> updatedAttributes =
                   user.getAttributes().stream()
                       .map(

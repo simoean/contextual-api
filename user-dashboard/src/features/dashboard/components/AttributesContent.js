@@ -1,4 +1,4 @@
-import React, {useState, useRef, useMemo} from 'react';
+import React, {useState, useRef, useMemo, useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 
 import {
@@ -35,6 +35,7 @@ import {
   Tag,
   TagLabel,
   Spacer,
+  FormErrorMessage, // Import FormErrorMessage
 } from '@chakra-ui/react';
 
 import {FaLock, FaEye, FaPlus, FaEdit, FaTrashAlt} from 'react-icons/fa';
@@ -82,6 +83,7 @@ const AttributesContent = ({
   const [formValue, setFormValue] = useState('');
   const [formContextIds, setFormContextIds] = useState([]);
   const [formVisible, setFormVisible] = useState(false);
+  const [formError, setFormError] = useState(''); // New state for validation error
 
   // State and disclosure hook for Delete Confirmation AlertDialog
   const {isOpen: isDeleteAlertOpen, onOpen: onDeleteAlertOpen, onClose: onDeleteAlertClose} = useDisclosure();
@@ -93,6 +95,27 @@ const AttributesContent = ({
 
   // Toast hook for displaying user notifications
   const toast = useToast();
+
+  /**
+   * --- NEW: Real-time validation effect ---
+   * Checks for duplicate attribute names whenever the formName changes.
+   */
+  useEffect(() => {
+    if (formName) {
+      const isDuplicate = attributes.some(attr =>
+        attr.name.toLowerCase() === formName.toLowerCase() &&
+        (!isEditing || attr.id !== currentAttribute.id) // Ignore self when editing
+      );
+      if (isDuplicate) {
+        setFormError('This attribute name is already in use.');
+      } else {
+        setFormError('');
+      }
+    } else {
+      setFormError(''); // Clear error if name is empty
+    }
+  }, [formName, attributes, isEditing, currentAttribute]);
+
 
   /**
    * Memoized value for the currently selected context.
@@ -134,6 +157,7 @@ const AttributesContent = ({
     setFormValue('');
     setFormContextIds(selectedContextId ? [selectedContextId] : []);
     setFormVisible(true);
+    setFormError(''); // Reset error on open
     onOpen();
   };
 
@@ -149,6 +173,7 @@ const AttributesContent = ({
     setFormValue(attribute.value);
     setFormContextIds(Array.isArray(attribute.contextIds) ? attribute.contextIds : []);
     setFormVisible(attribute.visible);
+    setFormError(''); // Reset error on open
     onOpen();
   };
 
@@ -258,7 +283,7 @@ const AttributesContent = ({
               fontWeight="bold"
               fontSize="lg"
             >
-              {currentSelectedContext.name}
+              {currentSelectedContext?.name}
             </Button>
             "{' '}context:{' '}
           </>
@@ -366,7 +391,7 @@ const AttributesContent = ({
       ) : (
         <Text color={textColor}>
           {selectedContextId
-            ? `No attributes found for your "${currentSelectedContext.name}" context. Click "Add Attribute" to create one.`
+            ? `No attributes found for your "${currentSelectedContext?.name}" context. Click "Add Attribute" to create one.`
             : 'No attributes found for your user. Click "Add Attribute" to create one.'}
         </Text>
       )}
@@ -378,13 +403,14 @@ const AttributesContent = ({
           <ModalHeader>{isEditing ? 'Edit Attribute' : 'Add New Attribute'}</ModalHeader>
           <ModalCloseButton/>
           <ModalBody>
-            <FormControl id="attribute-name" isRequired mb={4}>
+            <FormControl id="attribute-name" isRequired isInvalid={!!formError} mb={4}>
               <FormLabel>Name</FormLabel>
               <Input
                 placeholder="e.g., 'email', 'country'"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
               />
+              {formError && <FormErrorMessage>{formError}</FormErrorMessage>}
             </FormControl>
             <FormControl id="attribute-value" isRequired mb={4}>
               <FormLabel>Value</FormLabel>
@@ -432,7 +458,7 @@ const AttributesContent = ({
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" onClick={onClose} mr={3}>Cancel</Button>
-            <Button colorScheme={buttonColorScheme} onClick={handleSubmit}>
+            <Button colorScheme={buttonColorScheme} onClick={handleSubmit} isDisabled={!!formError}>
               {isEditing ? 'Update Attribute' : 'Create Attribute'}
             </Button>
           </ModalFooter>

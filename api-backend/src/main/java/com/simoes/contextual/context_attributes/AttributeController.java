@@ -36,19 +36,19 @@ public class AttributeController {
    *
    * @param contextId The ID of the context to filter attributes by.
    * @return ResponseEntity containing a list of IdentityAttribute objects for the specified
-   *     context.
+   * context.
    */
   @GetMapping("/{contextId}") // Sub-path for contextual attributes
   public ResponseEntity<List<IdentityAttribute>> getContextualAttributes(
-      @PathVariable String contextId) {
+          @PathVariable String contextId) {
     List<IdentityAttribute> contextualAttributes =
-        userUtil.getAuthenticatedUser().getAttributes().stream()
-            .filter(
-                attribute ->
-                    attribute.getContextIds() != null
-                        && attribute.getContextIds().contains(contextId))
-            .filter(IdentityAttribute::isVisible)
-            .collect(Collectors.toList());
+            userUtil.getAuthenticatedUser().getAttributes().stream()
+                    .filter(
+                            attribute ->
+                                    attribute.getContextIds() != null
+                                            && attribute.getContextIds().contains(contextId))
+                    .filter(IdentityAttribute::isVisible)
+                    .collect(Collectors.toList());
 
     return ResponseEntity.ok(contextualAttributes);
   }
@@ -58,15 +58,15 @@ public class AttributeController {
    *
    * @param newAttribute The IdentityAttribute object to create.
    * @return ResponseEntity containing the created IdentityAttribute if successful, or BAD_REQUEST
-   *     status.
+   * status.
    */
   @PostMapping
   public ResponseEntity<IdentityAttribute> createAttribute(
-      @RequestBody IdentityAttribute newAttribute) {
+          @RequestBody IdentityAttribute newAttribute) {
     return attributeService
-        .createAttribute(userUtil.getAuthenticatedUserId(), newAttribute)
-        .map(attr -> ResponseEntity.status(HttpStatus.CREATED).body(attr))
-        .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+            .createAttribute(userUtil.getAuthenticatedUserId(), newAttribute)
+            .map(attr -> ResponseEntity.status(HttpStatus.CREATED).body(attr))
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
   }
 
   /**
@@ -75,15 +75,15 @@ public class AttributeController {
    * @param attributeId The ID of the attribute to update.
    * @param updatedAttribute The updated IdentityAttribute object.
    * @return ResponseEntity containing the updated IdentityAttribute if successful, or NOT_FOUND
-   *     status if not found.
+   * status if not found.
    */
   @PutMapping("/{attributeId}")
   public ResponseEntity<IdentityAttribute> updateAttribute(
-      @PathVariable String attributeId, @RequestBody IdentityAttribute updatedAttribute) {
+          @PathVariable String attributeId, @RequestBody IdentityAttribute updatedAttribute) {
     return attributeService
-        .updateAttribute(userUtil.getAuthenticatedUserId(), attributeId, updatedAttribute)
-        .map(ResponseEntity::ok)
-        .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+            .updateAttribute(userUtil.getAuthenticatedUserId(), attributeId, updatedAttribute)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
   }
 
   /**
@@ -95,7 +95,7 @@ public class AttributeController {
   @DeleteMapping("/{attributeId}")
   public ResponseEntity<Void> deleteAttribute(@PathVariable String attributeId) {
     boolean deleted =
-        attributeService.deleteAttribute(userUtil.getAuthenticatedUserId(), attributeId);
+            attributeService.deleteAttribute(userUtil.getAuthenticatedUserId(), attributeId);
 
     if (deleted) {
       return ResponseEntity.noContent().build();
@@ -117,5 +117,16 @@ public class AttributeController {
     List<IdentityAttribute> savedAttributes =
             attributeService.saveAttributes(userUtil.getAuthenticatedUserId(), attributes);
     return ResponseEntity.status(HttpStatus.OK).body(savedAttributes);
+  }
+
+  /**
+   * Handles IllegalArgumentException, typically thrown when a duplicate attribute name is found.
+   *
+   * @param ex The exception that was thrown.
+   * @return A ResponseEntity with a 409 Conflict status and the exception message.
+   */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
   }
 }

@@ -46,43 +46,43 @@ class UserServiceTest {
     Context testContextProfessional = new Context("ctx-2", "Professional", "Professional info");
 
     testAttributeFirstName =
-        new IdentityAttribute(
-            "attr-1",
-            "user123",
-            "firstName",
-            "John",
-            true,
-            Arrays.asList(testContextPersonal.getId(), testContextProfessional.getId()));
+            new IdentityAttribute(
+                    "attr-1",
+                    "user123",
+                    "firstName",
+                    "John",
+                    true,
+                    Arrays.asList(testContextPersonal.getId(), testContextProfessional.getId()));
     IdentityAttribute testAttributeLastName =
-        new IdentityAttribute(
-            "attr-2",
-            "user123",
-            "lastName",
-            "Doe",
-            true,
-            Collections.singletonList(testContextPersonal.getId()));
+            new IdentityAttribute(
+                    "attr-2",
+                    "user123",
+                    "lastName",
+                    "Doe",
+                    true,
+                    Collections.singletonList(testContextPersonal.getId()));
 
     testConsent =
-        Consent.builder()
-            .id("consent-123")
-            .clientId("client-app-1")
-            .sharedAttributes(Arrays.asList("attr-1", "attr-2"))
-            .createdAt(new Date())
-            .lastUpdatedAt(new Date())
-            .accessedAt(new ArrayList<>(Collections.singletonList(new java.util.Date())))
-            .build();
+            Consent.builder()
+                    .id("consent-123")
+                    .clientId("client-app-1")
+                    .sharedAttributes(Arrays.asList("attr-1", "attr-2"))
+                    .createdAt(new Date())
+                    .lastUpdatedAt(new Date())
+                    .accessedAt(new ArrayList<>(Collections.singletonList(new java.util.Date())))
+                    .build();
 
     testUser =
-        new User(
-            "user123",
-            "john.doe",
-            "password",
-            "john@example.com",
-            Collections.singletonList("ROLE_USER"),
-            new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
-            new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)),
-            new ArrayList<>(Collections.singletonList(testConsent)),
-            new ArrayList<>()); // Initialize with empty connections list
+            new User(
+                    "user123",
+                    "john.doe",
+                    "password",
+                    "john@example.com",
+                    Collections.singletonList("ROLE_USER"),
+                    new ArrayList<>(Arrays.asList(testContextPersonal, testContextProfessional)),
+                    new ArrayList<>(Arrays.asList(testAttributeFirstName, testAttributeLastName)),
+                    new ArrayList<>(Collections.singletonList(testConsent)),
+                    new ArrayList<>()); // Initialize with empty connections list
   }
 
   @Test
@@ -218,11 +218,11 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       Context updatedContext =
-          new Context(testContextPersonal.getId(), "Updated Personal", "New description");
+              new Context(testContextPersonal.getId(), "Updated Personal", "New description");
 
       // When: UserService's updateContext is called
       Optional<Context> result =
-          userService.updateContext(testUser.getId(), testContextPersonal.getId(), updatedContext);
+              userService.updateContext(testUser.getId(), testContextPersonal.getId(), updatedContext);
 
       // Then: Context should be updated and returned
       assertTrue(result.isPresent());
@@ -243,8 +243,8 @@ class UserServiceTest {
 
       // When: UserService's updateContext is called
       Optional<Context> result =
-          userService.updateContext(
-              testUser.getId(), nonExistentContext.getId(), nonExistentContext);
+              userService.updateContext(
+                      testUser.getId(), nonExistentContext.getId(), nonExistentContext);
 
       // Then: Optional should be empty
       assertFalse(result.isPresent());
@@ -280,18 +280,18 @@ class UserServiceTest {
     @Test
     @DisplayName("Should delete an existing context successfully and update attributes")
     void
-        Given_UserAndExistingContext_When_DeleteContext_Then_ContextIsDeletedAndAttributesUpdated() {
+    Given_UserAndExistingContext_When_DeleteContext_Then_ContextIsDeletedAndAttributesUpdated() {
       // Given: UserRepository finds the user and saves it
       when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       // Attribute 1 is linked to testContextPersonal
       assertTrue(
-          testUser.getAttributes().stream()
-              .anyMatch(
-                  attr ->
-                      attr.getId().equals(testAttributeFirstName.getId())
-                          && attr.getContextIds().contains(testContextPersonal.getId())));
+              testUser.getAttributes().stream()
+                      .anyMatch(
+                              attr ->
+                                      attr.getId().equals(testAttributeFirstName.getId())
+                                              && attr.getContextIds().contains(testContextPersonal.getId())));
 
       // When: UserService's deleteContext is called for testContextPersonal
       boolean deleted = userService.deleteContext(testUser.getId(), testContextPersonal.getId());
@@ -305,11 +305,11 @@ class UserServiceTest {
       assertFalse(testUser.getContexts().contains(testContextPersonal));
       // Verify attribute that was linked to the deleted context has its contextId removed
       assertFalse(
-          testUser.getAttributes().stream()
-              .anyMatch(
-                  attr ->
-                      attr.getId().equals(testAttributeFirstName.getId())
-                          && attr.getContextIds().contains(testContextPersonal.getId())));
+              testUser.getAttributes().stream()
+                      .anyMatch(
+                              attr ->
+                                      attr.getId().equals(testAttributeFirstName.getId())
+                                              && attr.getContextIds().contains(testContextPersonal.getId())));
     }
 
     @Test
@@ -341,11 +341,11 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       IdentityAttribute newAttribute =
-          new IdentityAttribute(null, null, "newAttr", "value", true, null);
+              new IdentityAttribute(null, null, "newAttr", "value", true, null);
 
       // When: UserService's createAttribute is called
       Optional<IdentityAttribute> result =
-          userService.createAttribute(testUser.getId(), newAttribute);
+              userService.createAttribute(testUser.getId(), newAttribute);
 
       // Then: New attribute should be returned with a generated ID
       assertTrue(result.isPresent());
@@ -362,6 +362,25 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when creating attribute with duplicate name")
+    void Given_UserAndExistingAttributeName_When_CreateAttribute_Then_ThrowsException() {
+      // Given: UserRepository finds the user
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      // An attribute with the name "firstName" already exists
+      IdentityAttribute duplicateAttribute =
+              new IdentityAttribute(null, null, "firstName", "value", true, null);
+
+      // When/Then: Calling createAttribute should throw IllegalArgumentException
+      assertThrows(
+              IllegalArgumentException.class,
+              () -> userService.createAttribute(testUser.getId(), duplicateAttribute),
+              "An attribute with the name 'firstName' already exists.");
+
+      // Verify that save was NOT called
+      verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     @DisplayName("Should update an existing attribute successfully")
     void Given_UserAndExistingAttribute_When_UpdateAttribute_Then_AttributeIsUpdated() {
       // Given: UserRepository finds the user and saves it
@@ -369,18 +388,18 @@ class UserServiceTest {
       when(userRepository.save(any(User.class))).thenReturn(testUser);
 
       IdentityAttribute updatedAttribute =
-          new IdentityAttribute(
-              testAttributeFirstName.getId(),
-              testUser.getId(),
-              "Updated Name",
-              "Updated Value",
-              false,
-              Collections.emptyList());
+              new IdentityAttribute(
+                      testAttributeFirstName.getId(),
+                      testUser.getId(),
+                      "Updated Name",
+                      "Updated Value",
+                      false,
+                      Collections.emptyList());
 
       // When: UserService's updateAttribute is called
       Optional<IdentityAttribute> result =
-          userService.updateAttribute(
-              testUser.getId(), testAttributeFirstName.getId(), updatedAttribute);
+              userService.updateAttribute(
+                      testUser.getId(), testAttributeFirstName.getId(), updatedAttribute);
 
       // Then: Attribute should be updated and returned
       assertTrue(result.isPresent());
@@ -393,19 +412,45 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when updating attribute to a duplicate name")
+    void Given_UserAndDuplicateAttributeName_When_UpdateAttribute_Then_ThrowsException() {
+      // Given: UserRepository finds the user
+      when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+      // Attempting to rename "firstName" to "lastName", which already exists
+      IdentityAttribute updatedAttribute =
+              new IdentityAttribute(
+                      testAttributeFirstName.getId(),
+                      testUser.getId(),
+                      "lastName", // This name is already used by attr-2
+                      "Updated Value",
+                      false,
+                      Collections.emptyList());
+
+      // When/Then: Calling updateAttribute should throw IllegalArgumentException
+      assertThrows(
+              IllegalArgumentException.class,
+              () -> userService.updateAttribute(
+                      testUser.getId(), testAttributeFirstName.getId(), updatedAttribute),
+              "An attribute with the name 'lastName' already exists.");
+
+      // Verify that save was NOT called
+      verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     @DisplayName("Should return empty Optional when updating non-existent attribute")
     void Given_UserAndNonExistentAttribute_When_UpdateAttribute_Then_ReturnsEmptyOptional() {
       // Given: UserRepository finds the user
       when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
 
       IdentityAttribute nonExistentAttribute =
-          new IdentityAttribute(
-              "attr-nonexistent", testUser.getId(), "nonexistent", "value", true, null);
+              new IdentityAttribute(
+                      "attr-nonexistent", testUser.getId(), "nonexistent", "value", true, null);
 
       // When: UserService's updateAttribute is called
       Optional<IdentityAttribute> result =
-          userService.updateAttribute(
-              testUser.getId(), nonExistentAttribute.getId(), nonExistentAttribute);
+              userService.updateAttribute(
+                      testUser.getId(), nonExistentAttribute.getId(), nonExistentAttribute);
 
       // Then: Optional should be empty
       assertFalse(result.isPresent());
@@ -423,7 +468,7 @@ class UserServiceTest {
 
       // When: UserService's deleteAttribute is called for testAttributeFirstName
       boolean deleted =
-          userService.deleteAttribute(testUser.getId(), testAttributeFirstName.getId());
+              userService.deleteAttribute(testUser.getId(), testAttributeFirstName.getId());
 
       // Then: Attribute should be deleted
       assertTrue(deleted);
@@ -461,16 +506,16 @@ class UserServiceTest {
     void setupProvisioning() {
       // A new user without contexts or attributes, as it would be before provisioning
       newUser =
-          new User(
-              "newUser123",
-              "new.user",
-              "newpass",
-              "new@example.com",
-              Collections.singletonList("ROLE_USER"),
-              Collections.emptyList(),
-              Collections.emptyList(),
-              Collections.emptyList(),
-              Collections.emptyList());
+              new User(
+                      "newUser123",
+                      "new.user",
+                      "newpass",
+                      "new@example.com",
+                      Collections.singletonList("ROLE_USER"),
+                      Collections.emptyList(),
+                      Collections.emptyList(),
+                      Collections.emptyList(),
+                      Collections.emptyList());
     }
 
     @Test
@@ -487,53 +532,53 @@ class UserServiceTest {
       assertFalse(newUser.getContexts().isEmpty());
       assertEquals(3, newUser.getContexts().size());
       assertTrue(
-          newUser.getContexts().stream()
-              .anyMatch(ctx -> ctx.getName().equals("Personal") && ctx.getId().startsWith("ctx-")));
+              newUser.getContexts().stream()
+                      .anyMatch(ctx -> ctx.getName().equals("Personal") && ctx.getId().startsWith("ctx-")));
       assertTrue(
-          newUser.getContexts().stream()
-              .anyMatch(
-                  ctx -> ctx.getName().equals("Professional") && ctx.getId().startsWith("ctx-")));
+              newUser.getContexts().stream()
+                      .anyMatch(
+                              ctx -> ctx.getName().equals("Professional") && ctx.getId().startsWith("ctx-")));
       assertTrue(
-          newUser.getContexts().stream()
-              .anyMatch(ctx -> ctx.getName().equals("Academic") && ctx.getId().startsWith("ctx-")));
+              newUser.getContexts().stream()
+                      .anyMatch(ctx -> ctx.getName().equals("Academic") && ctx.getId().startsWith("ctx-")));
 
       // 2. User's attributes should not be empty and contain the expected default attributes
       assertFalse(newUser.getAttributes().isEmpty());
       assertEquals(1, newUser.getAttributes().size());
       assertTrue(
-          newUser.getAttributes().stream()
-              .anyMatch(
-                  attr ->
-                      attr.getName().equals("Username")
-                          && attr.getId().startsWith("attr-")
-                          && attr.getUserId().equals(newUser.getId())));
+              newUser.getAttributes().stream()
+                      .anyMatch(
+                              attr ->
+                                      attr.getName().equals("Username")
+                                              && attr.getId().startsWith("attr-")
+                                              && attr.getUserId().equals(newUser.getId())));
 
       // 3. Attributes should be correctly associated with contexts
       IdentityAttribute firstNameAttr =
-          newUser.getAttributes().stream()
-              .filter(attr -> attr.getName().equals("Username"))
-              .findFirst()
-              .orElseThrow();
+              newUser.getAttributes().stream()
+                      .filter(attr -> attr.getName().equals("Username"))
+                      .findFirst()
+                      .orElseThrow();
 
       // Find the generated context IDs
       String personalCtxId =
-          newUser.getContexts().stream()
-              .filter(ctx -> ctx.getName().equals("Personal"))
-              .findFirst()
-              .orElseThrow()
-              .getId();
+              newUser.getContexts().stream()
+                      .filter(ctx -> ctx.getName().equals("Personal"))
+                      .findFirst()
+                      .orElseThrow()
+                      .getId();
       String professionalCtxId =
-          newUser.getContexts().stream()
-              .filter(ctx -> ctx.getName().equals("Professional"))
-              .findFirst()
-              .orElseThrow()
-              .getId();
+              newUser.getContexts().stream()
+                      .filter(ctx -> ctx.getName().equals("Professional"))
+                      .findFirst()
+                      .orElseThrow()
+                      .getId();
       String academicCtxId =
-          newUser.getContexts().stream()
-              .filter(ctx -> ctx.getName().equals("Academic"))
-              .findFirst()
-              .orElseThrow()
-              .getId();
+              newUser.getContexts().stream()
+                      .filter(ctx -> ctx.getName().equals("Academic"))
+                      .findFirst()
+                      .orElseThrow()
+                      .getId();
 
       assertTrue(firstNameAttr.getContextIds().contains(personalCtxId));
       assertTrue(firstNameAttr.getContextIds().contains(professionalCtxId));
@@ -547,25 +592,25 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException if user ID is null during provisioning")
     void
-        Given_NewUserWithNullId_When_ProvisionDefaultUserData_Then_ThrowsIllegalArgumentException() {
+    Given_NewUserWithNullId_When_ProvisionDefaultUserData_Then_ThrowsIllegalArgumentException() {
       // Given: A new user with a null ID
       User userWithNullId =
-          new User(
-              null,
-              "invalid.user",
-              "pass",
-              "invalid@example.com",
-              Collections.singletonList("ROLE_USER"),
-              Collections.emptyList(),
-              Collections.emptyList(),
-              Collections.emptyList(),
-              Collections.emptyList());
+              new User(
+                      null,
+                      "invalid.user",
+                      "pass",
+                      "invalid@example.com",
+                      Collections.singletonList("ROLE_USER"),
+                      Collections.emptyList(),
+                      Collections.emptyList(),
+                      Collections.emptyList(),
+                      Collections.emptyList());
 
       // When/Then: Calling provisionDefaultUserData should throw IllegalArgumentException
       assertThrows(
-          IllegalArgumentException.class,
-          () -> userService.provisionDefaultUserData(userWithNullId),
-          "User ID cannot be null for provisioning default data.");
+              IllegalArgumentException.class,
+              () -> userService.provisionDefaultUserData(userWithNullId),
+              "User ID cannot be null for provisioning default data.");
 
       // Verify that userRepository.save was NOT called
       verify(userRepository, never()).save(any(User.class));
@@ -583,13 +628,13 @@ class UserServiceTest {
     void setupBulkTests() {
       // An existing attribute from the main test setup
       existingAttributeToUpdate =
-          new IdentityAttribute(
-              testAttributeFirstName.getId(), // "attr-1"
-              testUser.getId(),
-              "firstName",
-              "Jonathan", // New value
-              false,
-              Collections.singletonList(testContextPersonal.getId())); // New context list
+              new IdentityAttribute(
+                      testAttributeFirstName.getId(), // "attr-1"
+                      testUser.getId(),
+                      "firstName",
+                      "Jonathan", // New value
+                      false,
+                      Collections.singletonList(testContextPersonal.getId())); // New context list
 
       // A completely new attribute
       IdentityAttribute newAttribute = new IdentityAttribute(
@@ -612,7 +657,7 @@ class UserServiceTest {
 
       // When: The bulk save method is called
       List<IdentityAttribute> savedAttributes =
-          userService.saveAttributesBulk(testUser.getId(), attributesToSave);
+              userService.saveAttributesBulk(testUser.getId(), attributesToSave);
 
       // Then: The returned list should contain all attributes
       assertEquals(3, savedAttributes.size()); // Original "lastName" + updated "firstName" + new
@@ -620,21 +665,21 @@ class UserServiceTest {
 
       // Verify the existing attribute was updated
       IdentityAttribute updatedAttr =
-          savedAttributes.stream()
-              .filter(a -> a.getId().equals(existingAttributeToUpdate.getId()))
-              .findFirst()
-              .orElseThrow();
+              savedAttributes.stream()
+                      .filter(a -> a.getId().equals(existingAttributeToUpdate.getId()))
+                      .findFirst()
+                      .orElseThrow();
       assertEquals("Jonathan", updatedAttr.getValue());
       assertEquals(
-          existingAttributeToUpdate.getContextIds(),
-          updatedAttr.getContextIds()); // Check context IDs were updated
+              existingAttributeToUpdate.getContextIds(),
+              updatedAttr.getContextIds()); // Check context IDs were updated
 
       // Verify the new attribute was created with a new ID
       IdentityAttribute createdAttr =
-          savedAttributes.stream()
-              .filter(a -> "middleName".equals(a.getName()))
-              .findFirst()
-              .orElseThrow();
+              savedAttributes.stream()
+                      .filter(a -> "middleName".equals(a.getName()))
+                      .findFirst()
+                      .orElseThrow();
       assertNotNull(createdAttr.getId());
       assertTrue(createdAttr.getId().startsWith("attr-"));
       assertEquals(testUser.getId(), createdAttr.getUserId());
@@ -651,9 +696,9 @@ class UserServiceTest {
 
       // When/Then: Calling the bulk save method throws an exception
       assertThrows(
-          IllegalArgumentException.class,
-          () -> userService.saveAttributesBulk("non-existent-id", attributesToSave),
-          "User not found with ID: non-existent-id");
+              IllegalArgumentException.class,
+              () -> userService.saveAttributesBulk("non-existent-id", attributesToSave),
+              "User not found with ID: non-existent-id");
 
       // Verify that save was never called
       verify(userRepository, never()).save(any(User.class));
@@ -669,7 +714,7 @@ class UserServiceTest {
     @BeforeEach
     void setupConnectionTests() {
       newConnection =
-          new Connection("provider-google", "google-user-id", "access-token-123", Instant.now());
+              new Connection("provider-google", "google-user-id", "access-token-123", Instant.now());
     }
 
     @Test
@@ -695,7 +740,7 @@ class UserServiceTest {
     void Given_UserWithExistingConnection_When_SaveConnection_Then_ConnectionIsUpdated() {
       // Given: User is found and already has a connection for the same provider
       Connection existingConnection =
-          new Connection("provider-google", "google-user-id", "old-token", Instant.now());
+              new Connection("provider-google", "google-user-id", "old-token", Instant.now());
       testUser.setConnections(new ArrayList<>(Collections.singletonList(existingConnection)));
       when(userRepository.findByUsername(testUser.getUsername())).thenReturn(Optional.of(testUser));
 
@@ -718,8 +763,8 @@ class UserServiceTest {
 
       // When/Then: Calling saveConnection throws an exception
       assertThrows(
-          RuntimeException.class,
-          () -> userService.saveConnection("non-existent-user", newConnection));
+              RuntimeException.class,
+              () -> userService.saveConnection("non-existent-user", newConnection));
 
       // Verify save was not called
       verify(userRepository, never()).save(any(User.class));
@@ -754,15 +799,15 @@ class UserServiceTest {
     @BeforeEach
     void setupConsentTests() {
       newConsent =
-          Consent.builder()
-              .clientId("client-app-2")
-              .sharedAttributes(Arrays.asList("attr-3", "attr-4"))
-              .build();
+              Consent.builder()
+                      .clientId("client-app-2")
+                      .sharedAttributes(Arrays.asList("attr-3", "attr-4"))
+                      .build();
       existingConsent =
-          Consent.builder()
-              .clientId(testConsent.getClientId())
-              .sharedAttributes(List.of("attr-1"))
-              .build();
+              Consent.builder()
+                      .clientId(testConsent.getClientId())
+                      .sharedAttributes(List.of("attr-1"))
+                      .build();
     }
 
     @Test
@@ -778,8 +823,8 @@ class UserServiceTest {
       // Then: The user is returned, and a new consent is added
       assertTrue(result.isPresent());
       assertTrue(
-          result.get().getConsents().stream()
-              .anyMatch(c -> c.getClientId().equals(newConsent.getClientId())));
+              result.get().getConsents().stream()
+                      .anyMatch(c -> c.getClientId().equals(newConsent.getClientId())));
 
       // Verify that save was called once
       verify(userRepository, times(1)).save(testUser);
@@ -801,10 +846,10 @@ class UserServiceTest {
       // Then: The user is returned, and the existing consent is updated
       assertTrue(result.isPresent());
       Consent updatedConsent =
-          result.get().getConsents().stream()
-              .filter(c -> c.getClientId().equals(existingConsent.getClientId()))
-              .findFirst()
-              .orElseThrow();
+              result.get().getConsents().stream()
+                      .filter(c -> c.getClientId().equals(existingConsent.getClientId()))
+                      .findFirst()
+                      .orElseThrow();
 
       assertEquals(existingConsent.getSharedAttributes(), updatedConsent.getSharedAttributes());
       assertTrue(updatedConsent.getLastUpdatedAt().after(lastUpdatedAt));
@@ -901,7 +946,7 @@ class UserServiceTest {
 
       // When: findConsentById is called with a non-existent client ID
       Optional<Consent> result =
-          userService.findConsentById(testUser.getId(), "non-existent-client");
+              userService.findConsentById(testUser.getId(), "non-existent-client");
 
       // Then: The optional is empty
       assertFalse(result.isPresent());
@@ -942,53 +987,53 @@ class UserServiceTest {
       // Setup a user with specific attributes and a single consent
       Context testContextPersonal = new Context("ctx-1", "Personal", "Personal info");
       IdentityAttribute testAttributeFirstName =
-          new IdentityAttribute(
-              "attr-1",
-              "user123",
-              "firstName",
-              "John",
-              true,
-              Collections.singletonList(testContextPersonal.getId()));
+              new IdentityAttribute(
+                      "attr-1",
+                      "user123",
+                      "firstName",
+                      "John",
+                      true,
+                      Collections.singletonList(testContextPersonal.getId()));
       IdentityAttribute testAttributeLastName =
-          new IdentityAttribute(
-              "attr-2",
-              "user123",
-              "lastName",
-              "Doe",
-              true,
-              Collections.singletonList(testContextPersonal.getId()));
+              new IdentityAttribute(
+                      "attr-2",
+                      "user123",
+                      "lastName",
+                      "Doe",
+                      true,
+                      Collections.singletonList(testContextPersonal.getId()));
       IdentityAttribute testAttributeEmail =
-          new IdentityAttribute(
-              "attr-3",
-              "user123",
-              "email",
-              "john.doe@test.com",
-              true,
-              Collections.singletonList(testContextPersonal.getId()));
+              new IdentityAttribute(
+                      "attr-3",
+                      "user123",
+                      "email",
+                      "john.doe@test.com",
+                      true,
+                      Collections.singletonList(testContextPersonal.getId()));
 
       // This consent only approves 'firstName' and 'email'
       testConsent =
-          Consent.builder()
-              .id("consent-123")
-              .clientId("client-app-1")
-              .sharedAttributes(new ArrayList<>(Arrays.asList("attr-1", "attr-3")))
-              .createdAt(new Date())
-              .lastUpdatedAt(new Date())
-              .accessedAt(Collections.emptyList())
-              .build();
+              Consent.builder()
+                      .id("consent-123")
+                      .clientId("client-app-1")
+                      .sharedAttributes(new ArrayList<>(Arrays.asList("attr-1", "attr-3")))
+                      .createdAt(new Date())
+                      .lastUpdatedAt(new Date())
+                      .accessedAt(Collections.emptyList())
+                      .build();
 
       testUserWithConsent =
-          new User(
-              "user123",
-              "john.doe",
-              "password",
-              "john@example.com",
-              Collections.emptyList(),
-              Collections.emptyList(),
-              new ArrayList<>(
-                  Arrays.asList(testAttributeFirstName, testAttributeLastName, testAttributeEmail)),
-              Collections.singletonList(testConsent),
-              Collections.emptyList());
+              new User(
+                      "user123",
+                      "john.doe",
+                      "password",
+                      "john@example.com",
+                      Collections.emptyList(),
+                      Collections.emptyList(),
+                      new ArrayList<>(
+                              Arrays.asList(testAttributeFirstName, testAttributeLastName, testAttributeEmail)),
+                      Collections.singletonList(testConsent),
+                      Collections.emptyList());
     }
 
     @Test
@@ -996,11 +1041,11 @@ class UserServiceTest {
     void Given_UserAndValidClientId_When_GetConsentedAttributes_Then_ReturnsFilteredAttributes() {
       // Given: UserRepository finds the user
       when(userRepository.findById(testUserWithConsent.getId()))
-          .thenReturn(Optional.of(testUserWithConsent));
+              .thenReturn(Optional.of(testUserWithConsent));
 
       // When: getConsentedAttributes is called
       Optional<List<IdentityAttribute>> result =
-          userService.getConsentedAttributes(testUserWithConsent.getId(), "client-app-1");
+              userService.getConsentedAttributes(testUserWithConsent.getId(), "client-app-1");
 
       // Then: The optional should contain a list of 2 attributes ('firstName' and 'email')
       assertTrue(result.isPresent());
@@ -1015,11 +1060,11 @@ class UserServiceTest {
     void Given_UserAndInvalidClientId_When_GetConsentedAttributes_Then_ReturnsEmptyOptional() {
       // Given: UserRepository finds the user
       when(userRepository.findById(testUserWithConsent.getId()))
-          .thenReturn(Optional.of(testUserWithConsent));
+              .thenReturn(Optional.of(testUserWithConsent));
 
       // When: getConsentedAttributes is called with a non-consented client ID
       Optional<List<IdentityAttribute>> result =
-          userService.getConsentedAttributes(testUserWithConsent.getId(), "non-existent-client");
+              userService.getConsentedAttributes(testUserWithConsent.getId(), "non-existent-client");
 
       // Then: The optional should be empty
       assertFalse(result.isPresent());
@@ -1033,7 +1078,7 @@ class UserServiceTest {
 
       // When: getConsentedAttributes is called
       Optional<List<IdentityAttribute>> result =
-          userService.getConsentedAttributes("non-existent-id", "client-app-1");
+              userService.getConsentedAttributes("non-existent-id", "client-app-1");
 
       // Then: The optional should be empty
       assertFalse(result.isPresent());
@@ -1042,16 +1087,16 @@ class UserServiceTest {
     @Test
     @DisplayName("Should remove an attribute from an existing consent successfully")
     void
-        Given_UserAndExistingConsentAndAttribute_When_RemoveConsentedAttribute_Then_ReturnsTrueAndUpdatesUser() {
+    Given_UserAndExistingConsentAndAttribute_When_RemoveConsentedAttribute_Then_ReturnsTrueAndUpdatesUser() {
       // Given: UserRepository finds the user and saves the updated user
       when(userRepository.findById(testUserWithConsent.getId()))
-          .thenReturn(Optional.of(testUserWithConsent));
+              .thenReturn(Optional.of(testUserWithConsent));
       when(userRepository.save(any(User.class))).thenReturn(testUserWithConsent);
 
       // When: removeConsentedAttribute is called
       boolean removed =
-          userService.removeConsentedAttribute(
-              testUserWithConsent.getId(), testConsent.getId(), "attr-1");
+              userService.removeConsentedAttribute(
+                      testUserWithConsent.getId(), testConsent.getId(), "attr-1");
 
       // Then: Method should return true
       assertTrue(removed);
@@ -1069,12 +1114,12 @@ class UserServiceTest {
     void Given_UserAndConsent_When_RemoveNonExistentAttribute_Then_ReturnsFalseAndDoesNotSave() {
       // Given: UserRepository finds the user
       when(userRepository.findById(testUserWithConsent.getId()))
-          .thenReturn(Optional.of(testUserWithConsent));
+              .thenReturn(Optional.of(testUserWithConsent));
 
       // When: removeConsentedAttribute is called for a non-existent attribute
       boolean removed =
-          userService.removeConsentedAttribute(
-              testUserWithConsent.getId(), testConsent.getId(), "attr-non-existent");
+              userService.removeConsentedAttribute(
+                      testUserWithConsent.getId(), testConsent.getId(), "attr-non-existent");
 
       // Then: Method should return false
       assertFalse(removed);
@@ -1088,12 +1133,12 @@ class UserServiceTest {
     void Given_UserAndNonExistentConsent_When_RemoveConsentedAttribute_Then_ReturnsFalse() {
       // Given: UserRepository finds the user
       when(userRepository.findById(testUserWithConsent.getId()))
-          .thenReturn(Optional.of(testUserWithConsent));
+              .thenReturn(Optional.of(testUserWithConsent));
 
       // When: removeConsentedAttribute is called with a non-existent consent ID
       boolean removed =
-          userService.removeConsentedAttribute(
-              testUserWithConsent.getId(), "non-existent-consent-id", "attr-1");
+              userService.removeConsentedAttribute(
+                      testUserWithConsent.getId(), "non-existent-consent-id", "attr-1");
 
       // Then: Method should return false
       assertFalse(removed);
@@ -1110,12 +1155,12 @@ class UserServiceTest {
 
       // When: removeConsentedAttribute is called
       boolean removed =
-          userService.removeConsentedAttribute("non-existent-user", testConsent.getId(), "attr-1");
+              userService.removeConsentedAttribute("non-existent-user", testConsent.getId(), "attr-1");
 
       // Then: The method returns false
       assertFalse(removed);
 
-      // Verify that save was NOT called
+      // Verify that the user was NOT saved
       verify(userRepository, never()).save(any(User.class));
     }
   }
