@@ -58,14 +58,17 @@ class AttributeService {
   }
 
   /**
-   * Saves a list of attributes for a given user using a bulk operation.
-   * This method delegates the entire list to the UserService to ensure optimized persistence.
+   * Saves a list of attributes for a given user using a bulk operation. This method delegates the
+   * entire list to the UserService to ensure optimized persistence.
    *
    * @param userId The ID of the user.
    * @param attributes The list of attributes to save.
+   * @param providerUserId The ID of the user from the external provider (for logging or tracking
+   *     purposes).
    * @return The list of saved attributes.
    */
-  public List<IdentityAttribute> saveAttributes(String userId, List<IdentityAttribute> attributes) {
-    return userService.saveAttributesBulk(userId, attributes);
+  public List<IdentityAttribute> saveAttributes(
+      String userId, List<IdentityAttribute> attributes, String providerUserId) {
+    return userService.saveAttributesBulk(userId, attributes, providerUserId);
   }
 }

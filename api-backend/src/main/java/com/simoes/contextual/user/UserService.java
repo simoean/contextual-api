@@ -349,113 +349,122 @@ public class UserService {
 
   /**
    * Saves a list of identity attributes for a user in a single, bulk operation. This method handles
-   * both new and existing attributes by updating the in-memory user object and then saving the
-   * entire entity once.
+   * both new and existing attributes, and intelligently renames new attributes if their name
+   * already exists for the user.
    *
    * @param userId The ID of the user.
    * @param attributes The list of attributes to save.
+   * @param providerUserId The unique ID from the provider (e.g., email), used for renaming
+   *     duplicates.
    * @return The list of saved attributes.
    */
   public List<IdentityAttribute> saveAttributesBulk(
-      String userId, List<IdentityAttribute> attributes) {
-    // Find the user or throw an exception if not found.
-    // This ensures we always have a user object to work with.
+      String userId, List<IdentityAttribute> attributes, String providerUserId) {
     User user =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
-    // Create a mutable copy of the existing attributes for easier management.
     List<IdentityAttribute> userAttributes = new ArrayList<>(user.getAttributes());
+    Set<String> existingNames =
+        userAttributes.stream()
+            .map(attr -> attr.getName().toLowerCase())
+            .collect(Collectors.toSet());
 
-    // Iterate through the attributes to be saved.
-    attributes.forEach(
-        attributeToSave -> {
-          // Check if the attribute already exists by ID.
-          Optional<IdentityAttribute> existingAttributeOpt =
-              userAttributes.stream()
-                  .filter(
-                      existingAttr ->
-                          attributeToSave.getId() != null
-                              && existingAttr.getId().equals(attributeToSave.getId()))
-                  .findFirst();
+    String providerUser = providerUserId.substring(0, providerUserId.indexOf('@'));
 
-          if (existingAttributeOpt.isPresent()) {
-            // If the attribute exists, update its values.
-            IdentityAttribute existingAttribute = existingAttributeOpt.get();
-            existingAttribute.setValue(attributeToSave.getValue());
-            existingAttribute.setContextIds(attributeToSave.getContextIds());
-          } else {
-            // If it's a new attribute, give it a new ID and add it to the list.
-            if (attributeToSave.getId() == null || attributeToSave.getId().isEmpty()) {
-              String newId = "attr-" + UUID.randomUUID().toString().substring(0, 8);
-              attributeToSave.setId(newId);
-            }
-            attributeToSave.setUserId(userId);
+    for (IdentityAttribute attributeToSave : attributes) {
+      String originalName = attributeToSave.getName();
+      String finalName = originalName;
 
-            if (attributeToSave.getContextIds() == null) {
-              attributeToSave.setContextIds(new ArrayList<>());
-            }
-            userAttributes.add(attributeToSave);
-          }
-        });
+      // If the name (case-insensitive) already exists, create a new unique name.
+      if (existingNames.contains(finalName.toLowerCase())) {
+        finalName = originalName + " (" + providerUser + ")";
+      }
 
-    // Replace the old list with the newly updated list.
+      // Set the potentially modified name
+      attributeToSave.setName(finalName);
+
+      // Always treat these as new attributes: generate a new ID and set the user ID.
+      attributeToSave.setId("attr-" + UUID.randomUUID().toString().substring(0, 8));
+      attributeToSave.setUserId(userId);
+
+      if (attributeToSave.getContextIds() == null) {
+        attributeToSave.setContextIds(new ArrayList<>());
+      }
+
+      // Add the new attribute to the user's list
+      userAttributes.add(attributeToSave);
+
+      // Add the new final name to the set to handle duplicates within the same incoming batch
+      existingNames.add(finalName.toLowerCase());
+    }
+
     user.setAttributes(userAttributes);
-
-    // Save the user entity.
     userRepository.save(user);
     return user.getAttributes();
   }
 
   /**
-   * Saves a new connection to a user's profile, updating it if it already exists.
+   * Saves a new connection for a user. If a connection for the same provider and providerUserId
+   * already exists, it updates the token. Otherwise, it adds a new connection.
    *
-   * @param username The ID of the user.
+   * @param username The username of the user.
    * @param newConnection The connection object to save.
    */
   public void saveConnection(String username, Connection newConnection) {
-    Optional<User> userOptional = userRepository.findByUsername(username);
-    if (userOptional.isPresent()) {
-      User user = userOptional.get();
-      List<Connection> connections = user.getConnections();
+    userRepository
+        .findByUsername(username)
+        .ifPresent(
+            user -> {
+              List<Connection> connections =
+                  Optional.ofNullable(user.getConnections()).orElse(new ArrayList<>());
 
-      // Find if a connection to this provider already exists
-      Optional<Connection> existingConnection =
-          connections.stream()
-              .filter(conn -> conn.getProviderId().equals(newConnection.getProviderId()))
-              .findFirst();
+              // Check if a connection for this specific account already exists
+              Optional<Connection> existingConnection =
+                  connections.stream()
+                      .filter(
+                          conn ->
+                              conn.getProviderId().equals(newConnection.getProviderId())
+                                  && conn.getProviderUserId()
+                                      .equals(newConnection.getProviderUserId()))
+                      .findFirst();
 
-      if (existingConnection.isPresent()) {
-        // Update the existing connection
-        Connection connToUpdate = existingConnection.get();
-        connToUpdate.setProviderAccessToken(newConnection.getProviderAccessToken());
-        connToUpdate.setConnectedAt(newConnection.getConnectedAt());
-      } else {
-        // Add a new connection
-        connections.add(newConnection);
-      }
-      userRepository.save(user);
-    } else {
-      throw new RuntimeException("User not found with ID: " + username);
-    }
+              if (existingConnection.isPresent()) {
+                // Update the existing connection's access token
+                existingConnection
+                    .get()
+                    .setProviderAccessToken(newConnection.getProviderAccessToken());
+              } else {
+                // Add a new connection with a unique ID
+                newConnection.setId("conn-" + UUID.randomUUID().toString().substring(0, 8));
+                connections.add(newConnection);
+                user.setConnections(connections);
+              }
+              userRepository.save(user);
+            });
   }
 
   /**
-   * Deletes a connection for a user by provider ID.
+   * Deletes a specific connection for a user by its unique connection ID.
    *
-   * @param userId The ID of the user.
-   * @param providerId The ID of the provider to delete.
+   * @param username The username of the user.
+   * @param connectionId The unique ID of the connection to delete.
+   * @return true if the connection was found and deleted, false otherwise.
    */
-  public void deleteConnection(String userId, String providerId) {
-    Optional<User> userOptional = userRepository.findByUsername(userId);
-    if (userOptional.isPresent()) {
-      User user = userOptional.get();
-      user.getConnections().removeIf(conn -> conn.getProviderId().equals(providerId));
-      userRepository.save(user);
-    } else {
-      throw new RuntimeException("User not found with ID: " + userId);
-    }
+  public boolean deleteConnection(String username, String connectionId) {
+    return userRepository
+        .findByUsername(username)
+        .map(
+            user -> {
+              boolean removed =
+                  user.getConnections().removeIf(conn -> conn.getId().equals(connectionId));
+              if (removed) {
+                userRepository.save(user);
+              }
+              return removed;
+            })
+        .orElse(false);
   }
 
   /**

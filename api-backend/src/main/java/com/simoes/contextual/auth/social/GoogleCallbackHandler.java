@@ -20,11 +20,14 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /** Google OAuth 2.0 Handler This component handles the OAuth 2.0 callback from Google. */
 @Component
 public class GoogleCallbackHandler extends CallbackHandler
-    implements BiFunction<String, String, RedirectView> {
+        implements BiFunction<String, String, RedirectView> {
+
+  public static final String USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 
   @Value("${oauth.google.client-id}")
   private String clientId;
@@ -50,15 +53,17 @@ public class GoogleCallbackHandler extends CallbackHandler
   public RedirectView apply(String code, String frontendRedirectUrl) {
     try {
       String accessToken = getAccessToken(code);
+      String providerUserId = getProviderUserId(accessToken);
 
-      // We are only sending the access token back to the frontend, which will then use
-      // it to call your /api/v1/auth/attributes endpoint to fetch the attributes.
-      return new RedirectView(
-          frontendRedirectUrl
-              + "?status=success"
-              + "&provider=google"
-              + "&providerAccessToken="
-              + accessToken);
+      // Build the redirect URL with all necessary parameters
+      String url = UriComponentsBuilder.fromHttpUrl(frontendRedirectUrl)
+              .queryParam("status", "success")
+              .queryParam("provider", "google")
+              .queryParam("providerUser", providerUserId) // Add the user ID
+              .queryParam("providerAccessToken", accessToken)
+              .toUriString();
+
+      return new RedirectView(url);
     } catch (Exception e) {
       throw new RuntimeException("Google authentication failed", e);
     }
@@ -73,17 +78,16 @@ public class GoogleCallbackHandler extends CallbackHandler
    * @return A list of IdentityAttribute objects representing the user's attributes.
    */
   public List<IdentityAttribute> getUserAttributes(
-      String authorizationHeader, List<Context> userContexts) {
+          String authorizationHeader, List<Context> userContexts) {
     // Correctly extract the token by removing the "Bearer " prefix.
     String accessToken = authorizationHeader.replace("Bearer ", "");
-    String userDataUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
 
     HttpHeaders userHeaders = new HttpHeaders();
     userHeaders.set("Authorization", "Bearer " + accessToken);
     HttpEntity<String> userEntity = new HttpEntity<>(userHeaders);
 
     ResponseEntity<String> userResponse =
-        restTemplate.exchange(userDataUrl, HttpMethod.GET, userEntity, String.class);
+            restTemplate.exchange(USER_INFO_URL, HttpMethod.GET, userEntity, String.class);
 
     try {
       JsonNode userData = objectMapper.readTree(userResponse.getBody());
@@ -94,11 +98,11 @@ public class GoogleCallbackHandler extends CallbackHandler
       // Find the ID of the 'Personal' context from the user's list of contexts.
       // We use the Stream API here for a functional approach.
       String personalContextId =
-          userContexts.stream()
-              .filter(context -> "Personal".equals(context.getName()))
-              .map(Context::getId)
-              .findFirst()
-              .orElse(null); // Return null if the context isn't found.
+              userContexts.stream()
+                      .filter(context -> "Personal".equals(context.getName()))
+                      .map(Context::getId)
+                      .findFirst()
+                      .orElse(null); // Return null if the context isn't found.
 
       // If the personal context is not found, we can't properly map the attributes.
       if (personalContextId == null) {
@@ -108,24 +112,24 @@ public class GoogleCallbackHandler extends CallbackHandler
       // Dynamically map all fields from the JSON response to a list of IdentityAttribute objects
       // and associate them with the 'Personal' context ID.
       return userData.properties().stream()
-          .map(
-              entry -> {
-                String fieldName = entry.getKey();
-                String fieldValue =
-                    entry.getValue().isTextual()
-                        ? entry.getValue().asText()
-                        : entry.getValue().toString();
+              .map(
+                      entry -> {
+                        String fieldName = entry.getKey();
+                        String fieldValue =
+                                entry.getValue().isTextual()
+                                        ? entry.getValue().asText()
+                                        : entry.getValue().toString();
 
-                return IdentityAttribute.builder()
-                    .id("google_" + fieldName)
-                    .userId(userId)
-                    .name(formatFieldName(fieldName))
-                    .value(fieldValue)
-                    .visible(true)
-                    .contextIds(Collections.singletonList(personalContextId))
-                    .build();
-              })
-          .collect(Collectors.toList());
+                        return IdentityAttribute.builder()
+                                .id("google_" + fieldName)
+                                .userId(userId)
+                                .name(formatFieldName(fieldName))
+                                .value(fieldValue)
+                                .visible(true)
+                                .contextIds(Collections.singletonList(personalContextId))
+                                .build();
+                      })
+              .collect(Collectors.toList());
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to process JSON response from Google API", e);
     }
@@ -154,11 +158,31 @@ public class GoogleCallbackHandler extends CallbackHandler
     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
     ResponseEntity<String> tokenResponse =
-        restTemplate.postForEntity(tokenUrl, request, String.class);
+            restTemplate.postForEntity(tokenUrl, request, String.class);
     JsonNode tokenData = objectMapper.readTree(tokenResponse.getBody());
     String accessToken = tokenData.get("access_token").asText();
 
     System.out.println("Access Token successfully received: " + accessToken);
     return accessToken;
+  }
+
+  /**
+   * Fetches the unique user identifier from the provider.
+   *
+   * @param accessToken The access token for the provider.
+   * @return The unique user ID (e.g., email or a numeric ID).
+   * @throws JsonProcessingException if the JSON response cannot be parsed.
+   */
+  private String getProviderUserId(String accessToken) throws JsonProcessingException {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("Authorization", "Bearer " + accessToken);
+    HttpEntity<String> entity = new HttpEntity<>(headers);
+
+    ResponseEntity<String> response = restTemplate.exchange(USER_INFO_URL, HttpMethod.GET, entity, String.class);
+    JsonNode userData = objectMapper.readTree(response.getBody());
+
+    // For Google, the 'email' is a good, human-readable unique identifier.
+    // The 'sub' field is the permanent, non-changeable ID. Email is better for display.
+    return userData.get("email").asText();
   }
 }

@@ -61,6 +61,7 @@ const AuthCallbackPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [provider, setProvider] = useState(null);
+  const [providerUser, setProviderUser] = useState(null);
   const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
 
   // Set the redirection path based on the store's state
@@ -74,6 +75,7 @@ const AuthCallbackPage = () => {
   useEffect(() => {
     const status = searchParams.get('status');
     const providerFromUrl = searchParams.get('provider');
+    const providerUserFromUrl = searchParams.get('providerUser');
     const providerAccessToken = searchParams.get('providerAccessToken');
     const errorMessage = searchParams.get('message');
 
@@ -81,6 +83,7 @@ const AuthCallbackPage = () => {
     // with your app's token already in the store.
     if (status === 'success' && providerAccessToken && isAuthenticated && userInfo) {
       setProvider(providerFromUrl);
+      setProviderUser(providerUserFromUrl);
 
       const fetchUserAttributes = async () => {
         try {
@@ -221,12 +224,13 @@ const AuthCallbackPage = () => {
       await saveConnection({
         token: accessToken,
         providerId: provider,
+        providerUserId: providerUser,
         contextId: selectedContextId,
         providerAccessToken: providerAccessToken,
       });
 
       // 2. Save the attributes in bulk
-      await saveAttributesBulk(accessToken, attributes);
+      await saveAttributesBulk(accessToken, attributes, providerUser);
 
       // 3. Update the store state to reflect the new connection
       await fetchIdentityData(accessToken)

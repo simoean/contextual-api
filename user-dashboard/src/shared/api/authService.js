@@ -68,14 +68,16 @@ export const fetchAttributes = async ({provider, token, providerToken}) => {
  * @param {object} args - The arguments for the function.
  * @param {string} args.accessToken - The user's JWT token.
  * @param {string} args.providerId - The provider ID (e.g., 'google').
+ * @param {string} args.providerUserId - The provider User ID (e.g., 'user@gmail.com').
  * @param {string} args.contextId - The context ID for the connection.
  * @param {string} args.providerAccessToken - The access token from the provider.
  * @returns {Promise<any>}
  */
-export const saveConnection = async ({accessToken, providerId, contextId, providerAccessToken}) => {
+export const saveConnection = async ({accessToken, providerId, providerUserId, contextId, providerAccessToken}) => {
   try {
     const response = await axiosInstance.post(`/users/me/connections`, {
       providerId,
+      providerUserId,
       contextId,
       providerAccessToken,
     }, {
@@ -115,11 +117,16 @@ export const deleteConnection = async (accessToken, providerId) => {
  *
  * @param {string} accessToken - The JWT token for authentication.
  * @param {Object[]} attributes - The list of attributes to be saved.
+ * @param {string} providerUserId - The user ID from the provider.
  * @returns {Promise<Object>} The list of saved attributes returned from the API.
  */
-export const saveAttributesBulk = async (accessToken, attributes) => {
+export const saveAttributesBulk = async (accessToken, attributes, providerUserId) => {
   try {
-    const response = await axiosInstance.post('/users/me/attributes/bulk', attributes, {
+    const payload = {
+      attributes,
+      providerUserId,
+    };
+    const response = await axiosInstance.post('/users/me/attributes/bulk', payload, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },

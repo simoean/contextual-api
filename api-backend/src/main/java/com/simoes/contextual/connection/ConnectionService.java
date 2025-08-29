@@ -22,17 +22,23 @@ public class ConnectionService {
    *
    * @param username The ID of the user.
    * @param providerId The ID of the external provider (e.g., "google").
+   * @param providerUserId The user ID from the external provider.
    * @param contextId The context ID for the connection (not used in this implementation).
    * @param providerAccessToken The access token for the external provider.
    */
   public void saveConnectionForUser(
-      String username, String providerId, String contextId, String providerAccessToken) {
+      String username,
+      String providerId,
+      String providerUserId,
+      String contextId,
+      String providerAccessToken) {
     log.info("Saving connection for user {} with provider {}", username, providerId);
 
     // Create the connection object
     Connection newConnection =
         Connection.builder()
             .providerId(providerId)
+            .providerUserId(providerUserId)
             .contextId(contextId)
             .providerAccessToken(providerAccessToken)
             .connectedAt(Instant.now())

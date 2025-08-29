@@ -32,7 +32,9 @@ import org.springframework.test.web.servlet.MockMvc;
 class ConnectionControllerIntegrationTest {
 
   private final String TESTUSER = "testuser";
+  private final String CONNECTION_ID = "conn-id-123";
   private final String MOCK_USER_ID = "test-user-id";
+  private final String MOCK_CONTEXT_ID = "ctx-personal";
   private final String MOCK_PROVIDER_ID = "google";
   private final String MOCK_ACCESS_TOKEN = "mock-access-token";
 
@@ -53,10 +55,9 @@ class ConnectionControllerIntegrationTest {
     testUser.setUsername(TESTUSER);
     testUser.setConnections(Collections.emptyList());
 
-    String MOCK_CONTEXT_ID = "ctx-personal";
     connectionRequest =
         new ConnectionController.ConnectionRequest(
-            MOCK_PROVIDER_ID, MOCK_CONTEXT_ID, MOCK_ACCESS_TOKEN);
+            MOCK_PROVIDER_ID, MOCK_USER_ID, MOCK_CONTEXT_ID, MOCK_ACCESS_TOKEN);
 
     // Mock the UserUtil to return our test user
     when(userUtil.getAuthenticatedUserId()).thenReturn(MOCK_USER_ID);
@@ -72,7 +73,7 @@ class ConnectionControllerIntegrationTest {
         .thenReturn(
             testUser.withConnections(
                 Collections.singletonList(
-                    new Connection(MOCK_PROVIDER_ID, "Google", MOCK_ACCESS_TOKEN, Instant.now()))));
+                    new Connection(CONNECTION_ID, MOCK_PROVIDER_ID, MOCK_USER_ID, MOCK_CONTEXT_ID, MOCK_ACCESS_TOKEN, Instant.now()))));
 
     // When: A GET request is made to the connections endpoint
     mockMvc
@@ -103,6 +104,7 @@ class ConnectionControllerIntegrationTest {
         .saveConnectionForUser(
             TESTUSER,
             connectionRequest.getProviderId(),
+            connectionRequest.getProviderUserId(),
             connectionRequest.getContextId(),
             connectionRequest.getProviderAccessToken());
   }

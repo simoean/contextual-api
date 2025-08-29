@@ -30,6 +30,7 @@ public class ConnectionController {
   @AllArgsConstructor
   static class ConnectionRequest {
     private String providerId;
+    private String providerUserId;
     private String contextId;
     private String providerAccessToken;
   }
@@ -59,7 +60,11 @@ public class ConnectionController {
 
     String userId = authentication.getName();
     connectionService.saveConnectionForUser(
-        userId, request.getProviderId(), request.getContextId(), request.getProviderAccessToken());
+        userId,
+        request.getProviderId(),
+        request.getProviderUserId(),
+        request.getContextId(),
+        request.getProviderAccessToken());
 
     return ResponseEntity.ok("Connection saved successfully.");
   }

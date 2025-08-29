@@ -340,7 +340,7 @@ class AttributeControllerIntegrationTest {
             attrEmailVisibleGeneral.getId(),
             null,
             "email",
-            "new.email@example.com",
+            "user@example.com",
             true,
             Collections.singletonList(testContextGeneral.getId())
     );
@@ -356,23 +356,29 @@ class AttributeControllerIntegrationTest {
     );
 
     List<IdentityAttribute> attributesToSave = Arrays.asList(updatedEmail, newWebsite);
+    AttributeController.BulkSaveRequest request = new AttributeController.BulkSaveRequest();
+    request.setAttributes(attributesToSave);
+    request.setProviderUserId("user@example.com");
 
     mockMvc.perform(post("/api/v1/users/me/attributes/bulk")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(attributesToSave)))
+                    .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$.length()").value(4)) // Original 3 + 1 new - 1 updated = 4
-            .andExpect(jsonPath("$[?(@.name == 'email')].value").value("new.email@example.com"))
+            .andExpect(jsonPath("$.length()").value(5)) // Original 3 + 1 new + 1 updated = 5
+            .andExpect(jsonPath("$[?(@.name == 'email')].value").value("attr.tester@example.com"))
+            .andExpect(jsonPath("$[?(@.name == 'email (user)')].value").value("user@example.com"))
             .andExpect(jsonPath("$[?(@.name == 'website')].id").exists())
             .andExpect(jsonPath("$[?(@.name == 'website')].userId").value(testUser.getId()));
 
     // Verify the changes in the database
     User updatedUser = userService.findUserByUsername(testUser.getUsername()).orElseThrow();
-    assertEquals(4, updatedUser.getAttributes().size());
+    assertEquals(5, updatedUser.getAttributes().size());
     assertTrue(updatedUser.getAttributes().stream()
             .anyMatch(a -> a.getName().equals("website") && a.getValue().equals("https://example.com")));
     assertTrue(updatedUser.getAttributes().stream()
-            .anyMatch(a -> a.getId().equals(attrEmailVisibleGeneral.getId()) && a.getValue().equals("new.email@example.com")));
+            .anyMatch(a -> a.getName().equals("email") && a.getValue().equals("attr.tester@example.com")));
+    assertTrue(updatedUser.getAttributes().stream()
+            .anyMatch(a -> a.getName().equals("email (user)") && a.getValue().equals("user@example.com")));
   }
 }

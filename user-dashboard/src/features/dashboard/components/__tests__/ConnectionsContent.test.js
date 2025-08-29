@@ -1,29 +1,22 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import ConnectionsContent from '../ConnectionsContent';
 import * as authStore from 'features/auth/store/authenticationStore';
 import * as identityStore from 'features/dashboard/store/identityStore';
 import * as connectionActionsHook from 'shared/hooks/useConnectionActions';
 import { ChakraProvider } from '@chakra-ui/react';
 import '@testing-library/jest-dom';
-// We no longer need to import the icons here for the mock
-// import { FaGoogle, FaGithub } from 'react-icons/fa';
 
 // --- Global Mocks ---
 jest.mock('features/auth/store/authenticationStore');
 jest.mock('features/dashboard/store/identityStore');
 jest.mock('shared/hooks/useConnectionActions');
 
-// Mock the data file that provides the provider info.
-// Replace the icon components with simple strings to avoid the ReferenceError.
+// Mock the data file for providers
 jest.mock('shared/data/oauthProviders', () => ({
   contextProviders: {
-    Personal: [
-      { id: 'google', name: 'Google', icon: 'GoogleIcon', color: '#db4437' },
-    ],
-    Work: [
-      { id: 'github', name: 'Github', icon: 'GithubIcon', color: '#333' },
-    ],
+    Personal: [{ id: 'google', name: 'Google', icon: 'GoogleIcon', color: '#db4437' }],
+    Work: [{ id: 'github', name: 'Github', icon: 'GithubIcon', color: '#333' }],
   },
 }));
 
@@ -34,9 +27,10 @@ const mockContexts = [
   { id: 'ctx-2', name: 'Work' },
 ];
 
-// Mock connections from the store
+// ** THE FIX **: Updated mock data to match the new multi-account structure
 const mockConnections = [
-  { providerId: 'google' }, // User is connected to Google
+  { id: 'conn-1', providerId: 'google', providerUserId: 'user.one@google.com' },
+  { id: 'conn-2', providerId: 'google', providerUserId: 'user.two@google.com' },
 ];
 
 describe('ConnectionsContent', () => {
@@ -78,108 +72,81 @@ describe('ConnectionsContent', () => {
   };
 
   // --- Test Cases ---
-  describe('Rendering', () => {
-    it('should render the main heading and introductory text', () => {
+  describe('Rendering for Multiple Accounts', () => {
+    it('should render a list of connected accounts for a provider', () => {
       // Arrange & Act
       renderComponent();
 
       // Assert
-      expect(screen.getByRole('heading', { name: /manage connections/i })).toBeInTheDocument();
-      expect(screen.getByText(/link your external accounts/i)).toBeInTheDocument();
-    });
-
-    it('should render context cards with their associated providers', () => {
-      // Arrange & Act
-      renderComponent();
-
-      // Assert
-      // Find the card for the "Personal" context by its unique name
       const personalCard = screen.getByTestId('connection-card-Personal');
-      // Check for content *within* that card
-      expect(within(personalCard).getByText(/context:/i)).toBeInTheDocument();
-      expect(within(personalCard).getByRole('button', { name: /google/i })).toBeInTheDocument();
+      expect(within(personalCard).getByText('user.one@google.com')).toBeInTheDocument();
+      expect(within(personalCard).getByText('user.two@google.com')).toBeInTheDocument();
+    });
 
-      // Find the card for the "Work" context
+    it('should render an "Add another account" button when connections exist', () => {
+      // Arrange & Act
+      renderComponent();
+
+      // Assert
+      const personalCard = screen.getByTestId('connection-card-Personal');
+      expect(within(personalCard).getByRole('button', { name: /add another google account/i })).toBeInTheDocument();
+    });
+
+    it('should render a "Connect with" button when no connections exist for a provider', () => {
+      // Arrange & Act
+      renderComponent();
+
+      // Assert
       const workCard = screen.getByTestId('connection-card-Work');
-      // Check for content *within* that card
-      expect(within(workCard).getByText(/context:/i)).toBeInTheDocument();
-      expect(within(workCard).getByRole('button', { name: /github/i })).toBeInTheDocument();
-    });
-
-    it('should show "Connected" status for linked providers', () => {
-      // Arrange & Act
-      renderComponent();
-
-      // Assert
-      const googleButton = screen.getByRole('button', { name: /google/i });
-      expect(within(googleButton).getByText(/connected/i)).toBeInTheDocument();
-    });
-
-    it('should show "Connect" status for unlinked providers', () => {
-      // Arrange & Act
-      renderComponent();
-
-      // Assert
-      const githubButton = screen.getByRole('button', { name: /github/i });
-      expect(within(githubButton).getByText(/connect/i)).toBeInTheDocument();
-    });
-
-    it('should display a message if no contexts are available', () => {
-      // Arrange
-      identityStore.useIdentityStore.mockReturnValue({
-        contexts: [],
-        connections: [],
-      });
-
-      // Act
-      renderComponent();
-
-      // Assert
-      expect(screen.getByText(/no contexts found/i)).toBeInTheDocument();
+      expect(within(workCard).getByRole('button', { name: /connect with github/i })).toBeInTheDocument();
     });
   });
 
-  describe('User Interactions', () => {
-    it('should call handleConnect and store functions when a "Connect" button is clicked', () => {
+  describe('User Interactions for Multiple Accounts', () => {
+    it('should call handleConnect when the "Add another account" button is clicked', () => {
       // Arrange
       renderComponent();
-      const githubButton = screen.getByRole('button', { name: /github/i });
+      const addGoogleButton = screen.getByRole('button', { name: /add another google account/i });
 
       // Act
-      fireEvent.click(githubButton);
+      fireEvent.click(addGoogleButton);
 
       // Assert
       expect(mockSetRedirectFromConnections).toHaveBeenCalledWith(true);
-      expect(mockSetSelectedContextId).toHaveBeenCalledWith('ctx-2'); // Github is in the "Work" context
-      expect(mockHandleConnect).toHaveBeenCalledWith('github', 'ctx-2');
+      expect(mockSetSelectedContextId).toHaveBeenCalledWith('ctx-1');
+      expect(mockHandleConnect).toHaveBeenCalledWith('google', 'ctx-1');
     });
 
-    it('should open the disconnect confirmation modal when a "Connected" button is clicked', async () => {
+    it('should open the disconnect modal with the correct user ID when a disconnect icon is clicked', async () => {
       // Arrange
       renderComponent();
-      const googleButton = screen.getByRole('button', { name: /google/i });
+      // Find the disconnect button specifically for user.one@google.com
+      const disconnectButton = screen.getByLabelText(/disconnect user.one@google.com/i);
 
       // Act
-      fireEvent.click(googleButton);
+      fireEvent.click(disconnectButton);
 
       // Assert
       const dialog = await screen.findByRole('dialog');
-      expect(within(dialog).getByText(/disconnect google\?/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/disconnect account\?/i)).toBeInTheDocument();
+      // Verify it shows the correct user ID in the modal body
+      expect(within(dialog).getByText('user.one@google.com')).toBeInTheDocument();
     });
 
-    it('should call handleDisconnect when the disconnect is confirmed in the modal', async () => {
+    it('should call handleDisconnect with the correct connection ID on confirmation', async () => {
       // Arrange
       renderComponent();
-      const googleButton = screen.getByRole('button', { name: /google/i });
+      const disconnectButton = screen.getByLabelText(/disconnect user.two@google.com/i);
 
       // Act
-      fireEvent.click(googleButton);
+      fireEvent.click(disconnectButton);
       const dialog = await screen.findByRole('dialog');
-      const disconnectConfirmButton = within(dialog).getByRole('button', { name: /disconnect/i });
-      fireEvent.click(disconnectConfirmButton);
+      const confirmButton = within(dialog).getByRole('button', { name: /disconnect/i });
+      fireEvent.click(confirmButton);
 
       // Assert
-      expect(mockHandleDisconnect).toHaveBeenCalledWith('google');
+      // It should be called with 'conn-2', which is the ID for user.two@google.com
+      expect(mockHandleDisconnect).toHaveBeenCalledWith('conn-2');
     });
   });
 });

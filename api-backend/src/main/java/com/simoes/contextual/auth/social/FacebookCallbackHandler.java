@@ -71,6 +71,7 @@ public class FacebookCallbackHandler extends CallbackHandler
           "http://localhost:3000/auth/callback"
               + "?status=success"
               + "&provider=facebook"
+              + "&providerUser=facebookUser"
               + "&providerAccessToken="
               + accessToken);
 

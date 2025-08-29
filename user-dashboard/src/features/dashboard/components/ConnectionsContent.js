@@ -8,9 +8,6 @@ import {
   useColorModeValue,
   Button,
   HStack,
-  Tag,
-  TagLabel,
-  TagLeftIcon,
   useDisclosure,
   Modal,
   ModalOverlay,
@@ -19,9 +16,11 @@ import {
   ModalCloseButton,
   ModalBody,
   ModalFooter,
+  Flex,
+  IconButton,
 } from '@chakra-ui/react';
 
-import {FaCheckCircle, FaTimesCircle} from 'react-icons/fa';
+import { FaTrashAlt } from 'react-icons/fa';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 import {useIdentityStore} from 'features/dashboard/store/identityStore';
@@ -31,7 +30,7 @@ import {contextProviders} from 'shared/data/oauthProviders';
 
 /**
  * ConnectionsContent Component
- * Displays a list of available OAuth providers, grouped by context.
+ * Displays a list of available OAuth providers and allows connecting multiple accounts.
  *
  * @returns {JSX.Element}
  */
@@ -42,15 +41,15 @@ const ConnectionsContent = () => {
   const textColor = useColorModeValue('gray.800', 'white');
   const headingColor = useColorModeValue('brand.600', 'brand.300');
 
-  // State for modal
+  // State for the disconnect confirmation modal
   const {isOpen, onOpen, onClose} = useDisclosure();
-  const [providerToDelete, setProviderToDelete] = useState(null);
+  const [connectionToDelete, setConnectionToDelete] = useState(null);
 
   // Get state from the stores
   const {setSelectedContextId, setRedirectFromConnections} = useAuthenticationStore();
   const {contexts, connections} = useIdentityStore();
 
-  // Use the new custom hook for connection logic
+  // Use the custom hook for connection logic
   const {handleConnect, handleDisconnect, isDeleting} = useConnectionActions();
 
   // Map contexts to their providers for easy rendering
@@ -61,8 +60,12 @@ const ConnectionsContent = () => {
     }));
   }, [contexts]);
 
-  const onDisconnectClick = (providerId) => {
-    setProviderToDelete(providerId);
+  /**
+   * Opens the disconnect confirmation modal.
+   * @param {Object} connection - The specific connection object to be deleted.
+   */
+  const onDisconnectClick = (connection) => {
+    setConnectionToDelete(connection);
     onOpen();
   };
 
@@ -72,10 +75,8 @@ const ConnectionsContent = () => {
    * @param {string} contextId
    */
   const handleConnectWithRedirectState = (providerId, contextId) => {
-    // Set the state in the store to indicate we are redirecting from the connections page.
     setRedirectFromConnections(true);
     setSelectedContextId(contextId);
-    // Now call the original connect handler.
     handleConnect(providerId, contextId);
   };
 
@@ -96,72 +97,73 @@ const ConnectionsContent = () => {
                 flex="1"
                 minW={{base: "100%", md: "300px"}}
                 p={5}
-                pb={8}
                 borderWidth={"1px"}
                 borderRadius="lg"
                 boxShadow={"sm"}
                 bg={cardBg}
                 borderColor={cardBorderColor}
-                _hover={{
-                  boxShadow: "md",
-                  transform: 'scale(1.01)',
-                  transition: 'transform 0.1s ease-in-out',
-                }}
-                transition="all 0.2s ease-in-out"
               >
-                <VStack align="flex-start" spacing={3} pb={2}>
-                  <HStack flexWrap="wrap">
-                    <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={1}>
-                      Context:
+                <VStack align="flex-start" spacing={4} h="full">
+                  <Box w="full">
+                    <HStack flexWrap="wrap">
+                      <Text fontSize="xl" fontWeight="bold" color={textColor} noOfLines={1}>
+                        Context:
+                      </Text>
+                      <Text fontSize="xl" color={textColor} noOfLines={1}>
+                        {context.name}
+                      </Text>
+                    </HStack>
+                    <Text fontSize="sm" mt={1} color="gray.500">
+                      Connect accounts to populate your {context.name} identity.
                     </Text>
-                    <Text fontSize="xl" color={textColor} noOfLines={1}>
-                      {context.name}
-                    </Text>
-                  </HStack>
-                  <Text fontSize="sm" mb={6} color="gray.500">
-                    Connect the following accounts to populate your {context.name} identity.
-                  </Text>
-                </VStack>
-                <VStack spacing={4} align="stretch">
-                  {context.providers.map((provider) => {
-                    const isConnected = (connections || []).some(connection => connection.providerId === provider.id);
-                    return (
-                      <Button
-                        key={provider.id}
-                        leftIcon={provider.icon}
-                        width="full"
-                        color={isConnected ? textColor : "white"}
-                        onClick={() => {
-                          if (isConnected) {
-                            onDisconnectClick(provider.id);
-                          } else {
-                            handleConnectWithRedirectState(provider.id, context.id);
-                          }
-                        }}
-                        isLoading={isDeleting}
-                        backgroundColor={isConnected ? "transparent" : provider.color}
-                        borderColor={provider.color}
-                        borderWidth={isConnected ? "2px" : "0px"}
-                        _hover={{
-                          bg: isConnected ? "inherit" : provider.color,
-                          opacity: isConnected ? 0.8 : 1,
-                        }}
-                        _active={{
-                          bg: isConnected ? "inherit" : provider.color,
-                          opacity: 0.9,
-                        }}
-                        transition="all 0.2s ease-in-out"
-                      >
-                        <HStack justifyContent="space-between" w="full">
-                          <Text color={isConnected ? textColor : "white"}>{provider.name}</Text>
-                          <Tag size="sm" colorScheme={isConnected ? "green" : "red"}>
-                            <TagLeftIcon as={isConnected ? FaCheckCircle : FaTimesCircle}/>
-                            <TagLabel>{isConnected ? "Connected" : "Connect"}</TagLabel>
-                          </Tag>
-                        </HStack>
-                      </Button>
-                    );
-                  })}
+                  </Box>
+
+                  <VStack spacing={4} align="stretch" w="full">
+                    {context.providers.map((provider) => {
+                      // Find all connections for this specific provider
+                      const providerConnections = (connections || []).filter(c => c.providerId === provider.id);
+
+                      return (
+                        <VStack key={provider.id} align="stretch" spacing={2}>
+                          {/* Button to add a new connection */}
+                          <Button
+                            leftIcon={<Box as={provider.icon} />}
+                            width="full"
+                            color="white"
+                            onClick={() => handleConnectWithRedirectState(provider.id, context.id)}
+                            backgroundColor={provider.color}
+                            _hover={{ opacity: 0.9 }}
+                            transition="all 0.2s ease-in-out"
+                          >
+                            {providerConnections.length > 0 ? `Add another ${provider.name} account` : `Connect with ${provider.name}`}
+                          </Button>
+
+                          {/* List existing connections */}
+                          {providerConnections.length > 0 && (
+                            <VStack align="stretch" spacing={2} p={2} borderWidth="1px" borderRadius="md" borderColor={cardBorderColor}>
+                              {providerConnections.map(connection => (
+                                <Flex key={connection.id} align="center" justify="space-between">
+                                  <HStack>
+                                    <Box as={provider.icon} color={provider.color} />
+                                    <Text fontSize="sm" fontWeight="medium">{connection.providerUserId || `Connected Account`}</Text>
+                                  </HStack>
+                                  <IconButton
+                                    aria-label={`Disconnect ${connection.providerUserId}`}
+                                    icon={<FaTrashAlt />}
+                                    size="xs"
+                                    variant="ghost"
+                                    colorScheme="red"
+                                    onClick={() => onDisconnectClick(connection)}
+                                    isLoading={isDeleting && connectionToDelete?.id === connection.id}
+                                  />
+                                </Flex>
+                              ))}
+                            </VStack>
+                          )}
+                        </VStack>
+                      );
+                    })}
+                  </VStack>
                 </VStack>
               </Box>
             );
@@ -171,23 +173,27 @@ const ConnectionsContent = () => {
         <Text color={textColor}>No contexts found. Please add a context to view available connections.</Text>
       )}
 
-      <Modal isOpen={isOpen} onClose={onClose}>
+      {/* Disconnect Confirmation Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay/>
         <ModalContent>
-          <ModalHeader>Disconnect {providerToDelete}?</ModalHeader>
+          <ModalHeader>Disconnect Account?</ModalHeader>
           <ModalCloseButton/>
           <ModalBody>
-            Are you sure you want to disconnect your {providerToDelete} account? This action cannot be undone.
+            <Text>
+              Are you sure you want to disconnect the account: <strong>{connectionToDelete?.providerUserId}</strong>?
+            </Text>
+            <Text mt={2} fontSize="sm">This action cannot be undone.</Text>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={() => {
-              handleDisconnect(providerToDelete);
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button colorScheme="red" ml={3} onClick={() => {
+              handleDisconnect(connectionToDelete.id); // Pass the unique connection ID
               onClose();
             }} isLoading={isDeleting}>
               Disconnect
-            </Button>
-            <Button variant="ghost" onClick={onClose}>
-              Cancel
             </Button>
           </ModalFooter>
         </ModalContent>

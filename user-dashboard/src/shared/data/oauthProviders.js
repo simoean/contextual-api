@@ -1,4 +1,3 @@
-import React from 'react';
 import {FaGoogle, FaFacebook, FaLinkedin, FaGraduationCap, FaGithub, FaApple} from 'react-icons/fa';
 
 // Placeholder client IDs and redirect URIs. In a real app,
@@ -19,7 +18,7 @@ export const contextProviders = {
     {
       id: 'google',
       name: 'Google',
-      icon: <FaGoogle/>,
+      icon: FaGoogle,
       color: '#4285F4',
       clientId: GOOGLE_CLIENT_ID,
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -29,7 +28,7 @@ export const contextProviders = {
     {
       id: 'facebook',
       name: 'Facebook',
-      icon: <FaFacebook/>,
+      icon: FaFacebook,
       color: '#3b5998',
       clientId: FACEBOOK_CLIENT_ID,
       authUrl: 'https://www.facebook.com/v13.0/dialog/oauth',
@@ -38,7 +37,7 @@ export const contextProviders = {
     {
       id: 'apple',
       name: 'Apple',
-      icon: <FaApple/>,
+      icon: FaApple,
       color: '#000',
       clientId: APPLE_CLIENT_ID,
       authUrl: 'https://appleid.apple.com/auth/authorize',
@@ -49,7 +48,7 @@ export const contextProviders = {
     {
       id: 'linkedin',
       name: 'LinkedIn',
-      icon: <FaLinkedin/>,
+      icon: FaLinkedin,
       color: '#0077B5',
       clientId: LINKEDIN_CLIENT_ID,
       authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
@@ -58,7 +57,7 @@ export const contextProviders = {
     {
       id: 'github',
       name: 'GitHub',
-      icon: <FaGithub/>,
+      icon: FaGithub,
       color: '#333',
       clientId: GITHUB_CLIENT_ID,
       authUrl: 'https://github.com/login/oauth/authorize',
@@ -69,7 +68,7 @@ export const contextProviders = {
     {
       id: 'coursera',
       name: 'Coursera',
-      icon: <FaGraduationCap/>,
+      icon: FaGraduationCap,
       color: '#2127a2',
       clientId: COURSERA_CLIENT_ID,
       authUrl: 'YOUR_COURSERA_AUTH_URL',

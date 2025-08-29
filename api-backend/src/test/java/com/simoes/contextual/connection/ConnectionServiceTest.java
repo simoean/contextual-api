@@ -31,6 +31,7 @@ class ConnectionServiceTest {
 
   private final String USER_ID = "user123";
   private final String PROVIDER_ID = "google";
+  private final String PROVIDER_USER_ID = "prov-user-id-456";
   private final String CONTEXT_ID = "ctx-personal";
   private final String ACCESS_TOKEN = "mock-access-token";
 
@@ -52,7 +53,7 @@ class ConnectionServiceTest {
   void Given_ValidConnection_When_SaveConnectionForUser_Then_DelegatesToUserService() {
     // When: saveConnectionForUser is called
     connectionService.saveConnectionForUser(
-            USER_ID, PROVIDER_ID, CONTEXT_ID, ACCESS_TOKEN);
+            USER_ID, PROVIDER_ID, PROVIDER_USER_ID, CONTEXT_ID, ACCESS_TOKEN);
 
     // Then: The userService.saveConnection method should be called once with the correct parameters
     verify(userService, times(1)).saveConnection(eq(USER_ID), any(Connection.class));

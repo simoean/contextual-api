@@ -55,7 +55,8 @@ class GoogleCallbackHandlerTest {
     // Use ReflectionTestUtils to inject the dummy values into the private fields
     ReflectionTestUtils.setField(googleCallbackHandler, "clientId", "mock-client-id");
     ReflectionTestUtils.setField(googleCallbackHandler, "clientSecret", "mock-client-secret");
-    ReflectionTestUtils.setField(googleCallbackHandler, "redirectUri", "http://localhost:8080/api/v1/auth/callback/google");
+    ReflectionTestUtils.setField(
+        googleCallbackHandler, "redirectUri", "http://localhost:8080/api/v1/auth/callback/google");
   }
 
   /** Nested tests for the apply() method, which handles the Google OAuth callback. */
@@ -74,10 +75,20 @@ class GoogleCallbackHandlerTest {
       JsonNode mockJsonNode = mock(JsonNode.class);
       when(mockJsonNode.get("access_token")).thenReturn(mock(JsonNode.class));
       when(mockJsonNode.get("access_token").asText()).thenReturn("mock-access-token");
-
       when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
           .thenReturn(mockResponseEntity);
       when(objectMapper.readTree(mockAccessTokenResponse)).thenReturn(mockJsonNode);
+
+      String mockUserInfoResponse = "{\"email\": \"user@gmail.com\"}";
+      ResponseEntity<String> mockResponseEntityUser =
+          new ResponseEntity<>(mockUserInfoResponse, HttpStatus.OK);
+      JsonNode mockJsonNodeUser = mock(JsonNode.class);
+      when(mockJsonNodeUser.get("email")).thenReturn(mock(JsonNode.class));
+      when(mockJsonNodeUser.get("email").asText()).thenReturn("user@gmail.com");
+      when(restTemplate.exchange(
+              anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+          .thenReturn(mockResponseEntityUser);
+      when(objectMapper.readTree(mockUserInfoResponse)).thenReturn(mockJsonNodeUser);
 
       // Act
       RedirectView redirectView = googleCallbackHandler.apply(authCode, frontendRedirectUrl);
@@ -86,7 +97,7 @@ class GoogleCallbackHandlerTest {
       assertNotNull(redirectView);
       String expectedUrl =
           frontendRedirectUrl
-              + "?status=success&provider=google&providerAccessToken=mock-access-token";
+              + "?status=success&provider=google&providerUser=user@gmail.com&providerAccessToken=mock-access-token";
       assertEquals(expectedUrl, redirectView.getUrl());
       verify(restTemplate, times(1))
           .postForEntity(
@@ -126,9 +137,13 @@ class GoogleCallbackHandlerTest {
 
     @Test
     @DisplayName("Should return a list of IdentityAttributes for a valid token and user contexts")
-    void givenValidTokenAndContexts_whenGetUserAttributes_thenReturnsAttributes() throws JsonProcessingException {
+    void givenValidTokenAndContexts_whenGetUserAttributes_thenReturnsAttributes()
+        throws JsonProcessingException {
       // Arrange
-      String mockUserJson = String.format("{\"sub\": \"%s\", \"email\": \"%s\", \"name\": \"%s\"}", mockUserId, mockUserEmail, mockUserName);
+      String mockUserJson =
+          String.format(
+              "{\"sub\": \"%s\", \"email\": \"%s\", \"name\": \"%s\"}",
+              mockUserId, mockUserEmail, mockUserName);
       ResponseEntity<String> userResponse = new ResponseEntity<>(mockUserJson, HttpStatus.OK);
 
       JsonNode mockJsonNode = mock(JsonNode.class);
@@ -154,10 +169,10 @@ class GoogleCallbackHandlerTest {
 
       when(mockJsonNode.properties()).thenReturn(Set.of(subEntry, emailEntry, nameEntry));
 
-
       // Mocking RestTemplate and ObjectMapper
-      when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
-              .thenReturn(userResponse);
+      when(restTemplate.exchange(
+              anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+          .thenReturn(userResponse);
       when(objectMapper.readTree(mockUserJson)).thenReturn(mockJsonNode);
 
       // Mocking a personal context
@@ -165,23 +180,37 @@ class GoogleCallbackHandlerTest {
       List<Context> userContexts = Collections.singletonList(personalContext);
 
       // Act
-      List<IdentityAttribute> attributes = googleCallbackHandler.getUserAttributes(mockAuthorizationHeader, userContexts);
+      List<IdentityAttribute> attributes =
+          googleCallbackHandler.getUserAttributes(mockAuthorizationHeader, userContexts);
 
       // Assert
       assertNotNull(attributes);
       assertEquals(3, attributes.size()); // sub, email, name
 
       // Assert on the attributes
-      IdentityAttribute emailAttribute = attributes.stream().filter(attr -> "Email".equals(attr.getName())).findFirst().orElseThrow();
+      IdentityAttribute emailAttribute =
+          attributes.stream()
+              .filter(attr -> "Email".equals(attr.getName()))
+              .findFirst()
+              .orElseThrow();
       assertEquals("testuser@gmail.com", emailAttribute.getValue());
       assertEquals(mockPersonalContextId, emailAttribute.getContextIds().get(0));
 
-      IdentityAttribute nameAttribute = attributes.stream().filter(attr -> "Name".equals(attr.getName())).findFirst().orElseThrow();
+      IdentityAttribute nameAttribute =
+          attributes.stream()
+              .filter(attr -> "Name".equals(attr.getName()))
+              .findFirst()
+              .orElseThrow();
       assertEquals("Test User", nameAttribute.getValue());
       assertEquals(mockPersonalContextId, nameAttribute.getContextIds().get(0));
 
       // Verify that the correct API call was made
-      verify(restTemplate, times(1)).exchange(eq("https://www.googleapis.com/oauth2/v3/userinfo"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+      verify(restTemplate, times(1))
+          .exchange(
+              eq("https://www.googleapis.com/oauth2/v3/userinfo"),
+              eq(HttpMethod.GET),
+              any(HttpEntity.class),
+              eq(String.class));
     }
 
     @Test
@@ -217,19 +246,29 @@ class GoogleCallbackHandlerTest {
 
     @Test
     @DisplayName("Should throw RuntimeException if JSON processing fails")
-    void givenInvalidJson_whenGetUserAttributes_thenThrowsRuntimeException() throws JsonProcessingException {
+    void givenInvalidJson_whenGetUserAttributes_thenThrowsRuntimeException()
+        throws JsonProcessingException {
       // Arrange
       String invalidJson = "{invalid-json}";
       ResponseEntity<String> userResponse = new ResponseEntity<>(invalidJson, HttpStatus.OK);
 
-      // Use Mockito.lenient() for stubs that may not be used, preventing UnnecessaryStubbingException
-      lenient().when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
-              .thenReturn(userResponse);
-      lenient().when(objectMapper.readTree(invalidJson)).thenThrow(new JsonProcessingException("Mock JSON processing error") {});
+      // Use Mockito.lenient() for stubs that may not be used, preventing
+      // UnnecessaryStubbingException
+      lenient()
+          .when(
+              restTemplate.exchange(
+                  anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+          .thenReturn(userResponse);
+      lenient()
+          .when(objectMapper.readTree(invalidJson))
+          .thenThrow(new JsonProcessingException("Mock JSON processing error") {});
 
       // Act & Assert
-      assertThrows(RuntimeException.class,
-              () -> googleCallbackHandler.getUserAttributes(mockAuthorizationHeader, Collections.emptyList()));
+      assertThrows(
+          RuntimeException.class,
+          () ->
+              googleCallbackHandler.getUserAttributes(
+                  mockAuthorizationHeader, Collections.emptyList()));
     }
   }
 }
