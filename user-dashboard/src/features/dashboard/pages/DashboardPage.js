@@ -27,7 +27,7 @@ import { GiAwareness } from "react-icons/gi";
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarLeftExpand } from 'react-icons/tb';
 import { FaTags, FaSignOutAlt, FaRedoAlt, FaHandshake, FaLink } from 'react-icons/fa';
 
-import logo from 'assets/images/logo.png';
+import logo from 'assets/images/logo.webp';
 
 import { useIdentityStore } from 'features/dashboard/store/identityStore';
 import { useAuthenticationStore } from "features/auth/store/authenticationStore";
@@ -307,6 +307,7 @@ const DashboardPage = () => {
               <Button
                 key={item.id}
                 data-testid={`nav-${item.id}`}
+                aria-label={item.label}
                 variant="ghost"
                 onClick={() => handleSidebarClick(item)}
                 w="full"

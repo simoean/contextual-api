@@ -24,7 +24,7 @@ import {
 
 import {ViewIcon, ViewOffIcon, MoonIcon, SunIcon} from '@chakra-ui/icons';
 
-import logo from 'assets/images/logo.png';
+import logo from 'assets/images/logo.webp';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 

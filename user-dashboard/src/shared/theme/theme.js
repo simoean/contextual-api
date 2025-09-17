@@ -8,7 +8,7 @@ const colors = {
     200: '#80caca',
     300: '#4db3b3',
     400: '#269999',
-    500: '#008080',
+    500: '#007070',
     600: '#006666',
     700: '#004d4d',
     800: '#003333',
@@ -20,12 +20,18 @@ const colors = {
     200: '#E2E8F0',
     300: '#CBD5E0',
     400: '#A0AEC0',
-    500: '#718096',
+    500: '#667085',
     600: '#4A5568',
     700: '#2D3748',
     800: '#1A202C',
     900: '#171923',
   },
+  red: {
+    500: '#D53F8C',
+    600: '#C53030',
+    700: '#9B2C2C',
+    800: '#822727'
+  }
 };
 
 // App theme configuration
@@ -62,10 +68,11 @@ const theme = extendTheme({
               bg: props.colorMode === 'light' ? 'gray.600' : 'gray.700',
             },
           }),
-          ...(props.colorScheme !== 'brand' && props.colorScheme !== 'gray' && {
-            bg: `${props.colorScheme}.500`,
-            _hover: { bg: `${props.colorScheme}.600` },
-            _active: { bg: `${props.colorScheme}.700` },
+          // Updated red color scheme for better contrast
+          ...(props.colorScheme === 'red' && {
+            bg: 'red.600',
+            _hover: { bg: 'red.700' },
+            _active: { bg: 'red.800' },
           }),
         }),
         outline: (props) => ({

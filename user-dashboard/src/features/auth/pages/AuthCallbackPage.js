@@ -36,7 +36,7 @@ import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 import {fetchAttributes, saveAttributesBulk, saveConnection} from 'shared/api/authService';
 import {useIdentityStore} from "features/dashboard/store/identityStore";
 
-import logo from "assets/images/logo.png";
+import logo from "assets/images/logo.webp";
 
 /**
  * Post-Social Login Page

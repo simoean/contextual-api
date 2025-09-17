@@ -23,7 +23,7 @@ import {
 } from '@chakra-ui/react';
 
 import {MoonIcon, SunIcon} from '@chakra-ui/icons';
-import logo from 'assets/images/logo.png';
+import logo from 'assets/images/logo.webp';
 
 import {useAuthenticationStore} from 'features/auth/store/authenticationStore';
 import {useIdentityStore} from 'features/dashboard/store/identityStore';
