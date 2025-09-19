@@ -130,6 +130,26 @@ contextual-api/
 └── ... (other project files and folders)
 ```
 
+### Running the Database (MongoDB with Docker)
+
+1. **Ensure Docker is running.**
+2. Open your terminal/command prompt and run the following command:
+
+   ```bash
+   docker run -d --name contextual-identity-mongo -p 27017:27017 mongo:latest 
+   ```
+  * This command will:
+    * `-d`: Run the container in detached mode (background).
+    * `--name contextual-identity-mongo`: Give the container a friendly name.
+    * `-p 27017:27017`: Map the container's MongoDB port to your host's port 27017.
+    * `mongo:latest`: Use the latest official MongoDB Docker image.
+
+3. Verify the container is running:
+   ```bash
+   docker ps
+   ```
+   You should see `contextual-identity-mongo` in the list.
+
 ### Running the Backend (api-backend)
 
 Ensure you have built the Spring Boot JAR file (e.g., by running mvn clean package in the api-backend directory).
@@ -156,8 +176,7 @@ migration running, e.g.:
 
 ### Running the Frontend Applications
 
-The User Dashboard and Sample Client are served by an Nginx Docker container. This setup also handles the MongoDB
-database.
+The User Dashboard and Sample Client are served by an Nginx Docker container.
 
 * Ensure Docker Desktop is running.
 * Ensure both `user-dashboard` and `sample-client` have been built (e.g., by running `npm run build` in each
@@ -188,7 +207,7 @@ Verify containers are running:
 docker ps
 ```
 
-You should see contextual-identity-mongo and contextual-identity-frontend-proxy in the list.
+You should see contextual-identity-frontend-proxy in the list.
 
 ### Testing
 
