@@ -16,6 +16,7 @@ served via Nginx in Docker).
     * [Prerequisites](#prerequisites)
     * [Cloning the Repository](#cloning-the-repository)
     * [Directory Layout for Running](#directory-layout-for-running)
+    * [Running the Database (MongoDB with Docker)](#running-the-database-mongodb-with-docker)
     * [Running the Backend (`api-backend`)](#running-the-backend-api-backend)
     * [Running the Frontend Applications](#running-the-frontend-applications)
     * [Startup Order](#startup-order)
